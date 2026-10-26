@@ -1,0 +1,12 @@
+vanguard-spec
+Copyright 2026 vanguard-lint contributors
+
+This product includes content derived from Elephant-Goldfish Model (EGM)
+  https://github.com/google/elephant-goldfish-model
+  Copyright 2026 Google LLC
+  Licensed under the Apache License, Version 2.0
+
+Derived files (adapted, with links and upstream references updated):
+  resources/README.md
+  resources/execution_instructions.md
+  resources/document_standards/*.md
