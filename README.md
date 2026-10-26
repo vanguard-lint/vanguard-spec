@@ -1,5 +1,7 @@
 # vanguard-spec
 
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+
 Spec-driven quality control layer. Locks systems through falsifiable specifications before implementation, using EGM (Elephant-Goldfish Model) as the upstream review/verification engine.
 
 ## Structure
