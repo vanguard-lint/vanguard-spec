@@ -1,8 +1,9 @@
 <p align="center">
-  <img src="resources/vanguard-logo.svg" width="96" alt="vanguard-spec logo">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="resources/readme-header-dark.svg">
+    <img src="resources/readme-header-light.svg" alt="vanguard-spec — lock down architectural invariants before line one" width="480">
+  </picture>
 </p>
-
-<h1 align="center">vanguard-spec<br><sub><sub>Lock down architectural invariants before line one.</sub></sub></h1>
 
 <br>
 
