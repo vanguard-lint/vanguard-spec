@@ -180,7 +180,7 @@
           <pre class="code-card-content" id="example-observe">$ vanguard observe architecture-overview
 stale → fresh
 anchor moved to 81243c6
-scope: 214 files Â· sha256:41bd…
+scope: 214 files · sha256:41bd…
 
 $ vanguard check
 all documents fresh (exit 0)</pre>
@@ -192,6 +192,132 @@ all documents fresh (exit 0)</pre>
       <div class="mdc-layout-grid__cell--span-12">
         <div class="cta">
           <a class="cta-primary link-button" href="https://github.com/vanguard-lint/vanguard-spec/blob/main/docs/designs/vanguard.md">CLI contract</a>
+        </div>
+      </div>
+    </div>
+    <div id="check-results" class="mdc-layout-grid__cell--span-12 usage-examples">
+      <h2 class="heading">Check results</h2>
+      <p class="description">
+        Every run of <code>vanguard check</code> classifies each watched
+        document into exactly one verdict — never a vague warning. Verdicts
+        compose into the exit bitmask, so CI and agents act on the summary
+        without parsing prose.
+      </p>
+      <div class="verdict-pills">
+        <span class="tag severity-low">3 fresh</span>
+        <span class="tag severity-critical">1 stale</span>
+        <span class="tag severity-high">1 dirty</span>
+        <span class="tag severity-medium">2 unobserved</span>
+        <span class="tag severity-invalid">1 lock lost</span>
+      </div>
+      <div class="vuln-table-container mdc-data-table">
+        <div role="table" class="vuln-table mdc-data-table__table" aria-label="Document ledger check results">
+          <div role="rowgroup" class="vuln-table-header">
+            <div role="row" class="vuln-table-row mdc-data-table__header-row">
+              <span class="vuln-table-cell mdc-data-table__header-cell vuln-table-header" role="columnheader" scope="col" aria-sort="none" data-column-id="id">
+                <div class="mdc-data-table__header-cell-wrapper">
+                  <div class="mdc-data-table__header-cell-label">Document</div>
+                </div>
+              </span>
+              <span class="vuln-table-cell mdc-data-table__header-cell vuln-table-header" role="columnheader" scope="col" aria-sort="none" data-column-id="watches">
+                <div class="mdc-data-table__header-cell-wrapper">
+                  <div class="mdc-data-table__header-cell-label">Watches</div>
+                </div>
+              </span>
+              <span class="vuln-table-cell mdc-data-table__header-cell vuln-table-header" role="columnheader" scope="col" aria-sort="none" data-column-id="attested">
+                <div class="mdc-data-table__header-cell-wrapper">
+                  <div class="mdc-data-table__header-cell-label">Attested</div>
+                </div>
+              </span>
+              <span class="vuln-table-cell mdc-data-table__header-cell vuln-table-header" role="columnheader" scope="col" aria-sort="none" data-column-id="verdict">
+                <div class="mdc-data-table__header-cell-wrapper">
+                  <div class="mdc-data-table__header-cell-label">Verdict</div>
+                </div>
+              </span>
+            </div>
+          </div>
+          <div role="rowgroup" class="vuln-table-rows mdc-data-table__content">
+            <div role="row" class="vuln-table-row mdc-data-table__row">
+              <span role="cell" class="vuln-table-cell mdc-data-table__cell">
+                <a href="https://github.com/vanguard-lint/vanguard-spec/blob/main/docs/designs/vanguard.md">architecture-overview</a>
+              </span>
+              <span role="cell" class="vuln-table-cell vuln-packages mdc-data-table__cell">
+                <ul class="packages">
+                  <li>docs/**</li>
+                </ul>
+              </span>
+              <span role="cell" class="vuln-table-cell mdc-data-table__cell">
+                <span title="2026-11-01">2 days ago</span>
+              </span>
+              <span role="cell" class="vuln-table-cell vuln-attributes mdc-data-table__cell">
+                <ul class="tags">
+                  <li><span class="tag severity-low">fresh</span></li>
+                  <li><span class="tag fix-available">baseline attested</span></li>
+                </ul>
+              </span>
+            </div>
+            <div role="row" class="vuln-table-row mdc-data-table__row">
+              <span role="cell" class="vuln-table-cell mdc-data-table__cell">
+                <a href="https://github.com/vanguard-lint/vanguard-spec/blob/main/docs/designs/vanguard.md">api-contract</a>
+              </span>
+              <span role="cell" class="vuln-table-cell vuln-packages mdc-data-table__cell">
+                <ul class="packages">
+                  <li>docs/api/**</li>
+                </ul>
+              </span>
+              <span role="cell" class="vuln-table-cell mdc-data-table__cell">
+                <span title="2026-10-26">8 days ago</span>
+              </span>
+              <span role="cell" class="vuln-table-cell vuln-attributes mdc-data-table__cell">
+                <ul class="tags">
+                  <li><span class="tag severity-critical">stale</span></li>
+                  <li><span class="tag fix-unavailable">scope changed in 81243c6</span></li>
+                </ul>
+              </span>
+            </div>
+            <div role="row" class="vuln-table-row mdc-data-table__row">
+              <span role="cell" class="vuln-table-cell mdc-data-table__cell">
+                <a href="https://github.com/vanguard-lint/vanguard-spec/blob/main/docs/designs/vanguard.md">deployment-runbook</a>
+              </span>
+              <span role="cell" class="vuln-table-cell vuln-packages mdc-data-table__cell">
+                <ul class="packages">
+                  <li>deploy/**</li>
+                </ul>
+              </span>
+              <span role="cell" class="vuln-table-cell mdc-data-table__cell">
+                <span title="never attested">never</span>
+              </span>
+              <span role="cell" class="vuln-table-cell vuln-attributes mdc-data-table__cell">
+                <ul class="tags">
+                  <li><span class="tag severity-medium">unobserved</span></li>
+                </ul>
+              </span>
+            </div>
+            <div role="row" class="vuln-table-row mdc-data-table__row">
+              <span role="cell" class="vuln-table-cell mdc-data-table__cell">
+                <a href="https://github.com/vanguard-lint/vanguard-spec/blob/main/docs/designs/vanguard.md">decision-log</a>
+              </span>
+              <span role="cell" class="vuln-table-cell vuln-packages mdc-data-table__cell">
+                <ul class="packages">
+                  <li>docs/adr/**</li>
+                </ul>
+              </span>
+              <span role="cell" class="vuln-table-cell mdc-data-table__cell">
+                <span title="2026-08-02">3 months ago</span>
+              </span>
+              <span role="cell" class="vuln-table-cell vuln-attributes mdc-data-table__cell">
+                <ul class="tags">
+                  <li><span class="tag severity-high">dirty</span></li>
+                  <li><span class="tag severity-invalid">lock lost</span></li>
+                </ul>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="mdc-layout-grid__cell--span-12">
+        <div class="cta">
+          <a class="cta-primary link-button" href="https://github.com/vanguard-lint/vanguard-spec/blob/main/docs/designs/vanguard.md">Verdict contract</a>
         </div>
       </div>
     </div>
@@ -288,7 +414,6 @@ vanguard check --strict
     </div>
   </div>
   <footer>
-    <p class="footer-note">vanguard-spec Â· Apache 2.0 Â· lock down architectural invariants before line one</p>
   </footer>
 </div>
 </div></body></html>
