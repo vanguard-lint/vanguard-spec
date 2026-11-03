@@ -78,6 +78,10 @@ func (e *Engine) Observe(req ObserveRequest) (*Result, error) {
 			// The CAS conflict aborts the whole run with no partial write.
 			return nil, usageError("%s", err.Error())
 		}
+		// Refresh the CAS baseline: the next observe on this engine must
+		// compare against the bytes just written, not the pre-save ones.
+		e.LockRaw = lockfile.Serialize(e.Lock)
+		e.LockSeen = true
 	}
 	env.Lock = LockReport{Changed: changed, Path: lockRelPath(e.LockPath)}
 	env.ExitBits = bits
@@ -103,6 +107,8 @@ func (e *Engine) prune() (*Result, error) {
 		if err := lockfile.Save(e.LockPath, e.Lock, e.LockRaw); err != nil {
 			return nil, usageError("%s", err.Error())
 		}
+		e.LockRaw = lockfile.Serialize(e.Lock)
+		e.LockSeen = true
 	}
 	env.Lock = LockReport{Changed: changed, Path: lockRelPath(e.LockPath)}
 	res.Envelope = env

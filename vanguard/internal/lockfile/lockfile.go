@@ -13,10 +13,45 @@ import (
 	"fmt"
 	"os"
 	"sort"
+	"time"
 )
 
 // Version is the lock schema version. An unknown major fails closed.
 const Version = 1
+
+// casStealAfter is the age at which a stale CAS token is stolen. A writer
+// that crashed while holding the token must never wedge the store forever.
+const casStealAfter = 10 * time.Second
+
+// casWait bounds how long a Save waits for a competing writer before it
+// fails with a re-run hint.
+const casWait = 2 * time.Second
+
+// acquireCAS serializes compare-and-swap writers on one lockfile. The
+// check-then-write window is only safe under mutual exclusion; the token
+// file provides it portably (O_EXCL create on every OS).
+func acquireCAS(path string) (func(), error) {
+	token := path + ".cas"
+	deadline := time.Now().Add(casWait)
+	for {
+		f, err := os.OpenFile(token, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o644)
+		if err == nil {
+			_ = f.Close()
+			return func() { _ = os.Remove(token) }, nil
+		}
+		if !os.IsExist(err) {
+			return nil, fmt.Errorf("cas token %s: %w", token, err)
+		}
+		if st, serr := os.Stat(token); serr == nil && time.Since(st.ModTime()) > casStealAfter {
+			_ = os.Remove(token)
+			continue
+		}
+		if time.Now().After(deadline) {
+			return nil, fmt.Errorf("another vanguard process holds the CAS on %s — re-run", path)
+		}
+		time.Sleep(2 * time.Millisecond)
+	}
+}
 
 // Entry is one document's baseline. Shape varies with the declared watches
 // and records the provider mode at observe time: anchor present = git mode,
@@ -253,15 +288,20 @@ func writeJSONString(buf *bytes.Buffer, s string) {
 // otherwise the on-disk bytes must equal captured — the compare-and-swap
 // that keeps concurrent observes from trampling each other.
 func Save(path string, lock *Lock, captured []byte) error {
+	release, err := acquireCAS(path)
+	if err != nil {
+		return err
+	}
+	defer release()
 	current, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) && captured == nil {
 			return atomicWrite(path, Serialize(lock))
 		}
-		return fmt.Errorf("lock changed during observe — re-run: %w", err)
+		return fmt.Errorf("lock changed during observe - re-run: %w", err)
 	}
 	if !bytes.Equal(current, captured) {
-		return fmt.Errorf("lock changed during observe — re-run")
+		return fmt.Errorf("lock changed during observe - re-run")
 	}
 	return atomicWrite(path, Serialize(lock))
 }

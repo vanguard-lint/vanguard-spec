@@ -218,11 +218,15 @@ func (e *Engine) evaluateObserved(doc *docmodel.Doc, entry lockfile.Entry, d *Do
 	if hasPaths {
 		if e.Prov.GitMode() {
 			stalePaths, changed, commits := e.gitPathsAxis(doc, entry, d, maxWalk)
+			if len(changed) > 0 {
+				// Attribution is informational on every path — fresh or
+				// stale, it names what touched the scope.
+				d.ChangedPaths = changed
+				d.IntroducingCommits = commits
+			}
 			if stalePaths {
 				stale = true
 				d.TriggeredWatches = append(d.TriggeredWatches, "paths")
-				d.ChangedPaths = changed
-				d.IntroducingCommits = commits
 				d.Hints = append(d.Hints,
 					fmtHint("inspect the commits, update the document, commit, then run: vanguard observe %s", doc.ID))
 			}
@@ -269,7 +273,13 @@ func (e *Engine) gitPathsAxis(doc *docmodel.Doc, entry lockfile.Entry, d *Docume
 		return true, nil, nil
 	}
 	if current == entry.ScopeTreeHash {
-		return false, nil, nil
+		// Net-fresh: the state matches the attestation. Attribution stays
+		// informational — A -> B -> A is fresh AND names the commits that
+		// touched the scope since the anchor (Q-1.1.b-2).
+		if reachable, err := e.Prov.AnchorReachable(entry.Anchor); err == nil && reachable {
+			changed, commits, _ = e.Prov.Attribution(entry.Anchor, head, doc.PathGlobs)
+		}
+		return false, changed, commits
 	}
 	// Stale. Attribution availability follows the three-path resolution;
 	// status is already decided by the net-state rule.

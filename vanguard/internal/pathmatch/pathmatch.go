@@ -74,6 +74,11 @@ func contains(list []string, s string) bool {
 
 // expandBraces expands the first brace group and recurses; nested braces and
 // empty alternatives are fatal.
+// maxExpansions bounds brace expansion: a legal glob must produce a
+// workable result set, and a malicious one must fail fast instead of
+// materializing 2^n strings (Q-3.b-3).
+const maxExpansions = 10000
+
 func expandBraces(s string) ([]string, error) {
 	for i := 0; i < len(s); i++ {
 		switch s[i] {
@@ -98,6 +103,9 @@ func expandBraces(s string) ([]string, error) {
 					return nil, err
 				}
 				out = append(out, rest...)
+				if len(out) > maxExpansions {
+					return nil, fatal(s, "brace expansion exceeds the 10000-result bound — narrow the glob")
+				}
 			}
 			return out, nil
 		}

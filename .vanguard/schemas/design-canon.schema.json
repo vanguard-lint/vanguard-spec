@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/vanguard-lint/vanguard-spec/.vanguard/schemas/design-canon.schema.json",
+  "title": "Design canon mirror",
+  "description": "Structure binding for the machine-managed mirror of the frozen design canon under .vanguard/docs/design/. The store copy watches docs/designs/vanguard.md: when the canon changes, the mirror goes stale and must be re-synced and re-attested. Its H2 skeleton is pinned so a divergent mirror fails structure verification instead of silently drifting. Declared by frontmatter: schema: design-canon.",
+  "type": "object",
+  "x-vanguard": {
+    "format": "markdown",
+    "required_sections": [
+      "Overview",
+      "The Problem",
+      "Goals",
+      "Non-Goals",
+      "Open Questions (carried — none blocks M0)",
+      "Resolved decisions (ADR summary)",
+      "Critical User Journeys (CUJs)",
+      "Technical Plan (Architecture)",
+      "Alternatives Considered",
+      "Non-Functional Requirements",
+      "Detailed Implementation Plan",
+      "Glossary"
+    ]
+  }
+}
