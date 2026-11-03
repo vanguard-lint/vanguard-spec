@@ -1,16 +1,24 @@
 {{- $url := .Destination -}}
 {{- $isExternal := or (hasPrefix $url "http://") (hasPrefix $url "https://") -}}
+{{- $isImage := or
+  (hasSuffix $url ".png")
+  (hasSuffix $url ".jpg")
+  (hasSuffix $url ".jpeg")
+  (hasSuffix $url ".webp")
+  (hasSuffix $url ".gif")
+-}}
 {{- $isTrusted := false -}}
 {{- if $isExternal -}}
   {{- $isTrusted = or
     (hasPrefix $url "https://github.com/vanguard-lint/")
     (hasPrefix $url "https://vanguard-lint.github.io/")
+    (hasPrefix $url "https://www.linkedin.com/")
   -}}
 {{- end -}}
 <a href="{{ .Destination | safeURL }}"
   {{- with .Title }} title="{{ . }}"{{ end -}}
-  {{- if $isExternal }} target="_blank"
-    {{- if $isTrusted }} rel="noopener noreferrer"
+  {{- if or $isExternal $isImage }} target="_blank"
+    {{- if or $isTrusted $isImage }} rel="noopener noreferrer"
     {{- else }} rel="nofollow noopener noreferrer"
     {{- end -}}
   {{- end -}}
