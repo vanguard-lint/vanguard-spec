@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="resources/vanguard-logo.svg" width="96" alt="vanguard-spec logo">
+</p>
+
 # vanguard-spec
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
