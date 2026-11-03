@@ -111,8 +111,8 @@
       "content_hash": "sha256:44086de7d394b9ae9be3601cd4263a8500288eb6c8a1cecb6e844c8f5321ca6e"
     },
     "readme": {
-      "anchor": "732d63337b4e3d56fdc047686e6f5ba22dc84e73",
-      "observed_at": "2026-11-03T10:05:37Z",
+      "anchor": "6b7fe90f59614b5eb85c59dd7723229b5ea734d3",
+      "observed_at": "2026-11-03T11:42:29Z",
       "scope_tree_hash": "sha256:347ac47b65e408562e9008dd3ed3451bbf02f115c3d59c09bdba74267f40bb30",
       "scope_file_count": 1,
       "content_hash": "sha256:fb7cea99da6d18e376ee423da70d292a4c5b16f507012761cde3b063ec95d640"
