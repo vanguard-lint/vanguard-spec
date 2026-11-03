@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/vanguard-lint/vanguard-spec/security/advisories/new
+    about: Report verdict bypasses and injection issues privately — never as a public issue.
+  - name: Project website
+    url: https://vanguard-lint.github.io/
+    about: The vanguard website — content errors there can be reported as normal issues here.

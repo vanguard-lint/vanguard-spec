@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <a href="https://vanguard-lint.github.io/vanguard-spec/"><strong>WEBSITE</strong></a>
+  <a href="https://vanguard-lint.github.io/"><strong>WEBSITE</strong></a>
   ·
   <a href="https://github.com/vanguard-lint/vanguard-spec#readme">README</a>
   ·
