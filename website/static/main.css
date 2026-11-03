@@ -2,6 +2,8 @@
 
 /* ---- vanguard overrides ---- */
 .top-bar .logo img{display:block;margin-top:-3px}
-.verdict-pills{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px}
+.verdict-pills{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:24px;justify-content:center}
 .verdict-pills .tag{font-size:1rem}
-#check-results .vuln-table-container{max-width:920px}
+#check-results .vuln-table-container{display:flex;max-width:920px;margin-left:auto;margin-right:auto}
+.home-page .usage-examples .description,.home-page .text-info .description{max-width:900px}
+.home-page .usage-examples .description{margin-left:auto;margin-right:auto}
