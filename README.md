@@ -2,11 +2,12 @@
   <img src="resources/vanguard-logo.svg" width="96" alt="vanguard-spec logo">
 </p>
 
-# vanguard-spec
+<p align="center">
+  <strong>vanguard-spec</strong><br>
+  Lock down architectural invariants before line one.
+</p>
 
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
-
-A spec-driven verification harness that locks down architectural invariants before code is written — designed around the Elephant-Goldfish Model for agentic workflows.
+<br>
 
 Vanguard is a standalone command-line tool that keeps specification documents honest. It manages a project's spec documents (markdown, JSON, YAML, and DSL dialects such as C4), verifies that each document follows the structure its owner declared, and answers one question deterministically:
 
@@ -22,3 +23,8 @@ Vanguard is a standalone command-line tool that keeps specification documents ho
 - **One deterministic answer** — which docs are stale, and which commit did it.
 - **Zero opinions** — the engine owns only identity, watches, and the lock.
 - **Machine-native output** — JSON envelope and exit bits for CI and agents.
+- **EGM drives the workflow**
+
+## License
+
+[Apache 2.0](LICENSE)
