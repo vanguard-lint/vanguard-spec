@@ -42,7 +42,7 @@ func scaffold(t *testing.T) (string, string) {
 	wf(t, root, ".vanguard/vanguard.yaml", "version: 1\n")
 	wf(t, root, ".vanguard/vanguard.lock", "{\"version\": 1, \"docs\": {}}\n")
 	wf(t, root, ".vanguard/docs/payments.md",
-		"---\nid: payments\nwatches:\n  paths: [\"src/payments/**\"]\n---\n# payments spec\n")
+		"---\nid: payments\nschema: none\nwatches:\n  paths: [\"src/payments/**\"]\n---\n# payments spec\n")
 	wf(t, root, "src/payments/api.go", "package payments\n")
 	w, err := repo.Worktree()
 	if err != nil {
@@ -166,7 +166,7 @@ func TestDocumentEditMakesStale(t *testing.T) {
 	// Editing the document without observing must go stale via the
 	// document axis — a cosmetic edit clears nothing.
 	wf(t, root, ".vanguard/docs/payments.md",
-		"---\nid: payments\nwatches:\n  paths: [\"src/payments/**\"]\n---\n# payments spec v2\n")
+		"---\nid: payments\nschema: none\nwatches:\n  paths: [\"src/payments/**\"]\n---\n# payments spec v2\n")
 	commitAll(t, root)
 
 	e2 := load(t, store)
@@ -230,7 +230,7 @@ func TestObserveRefusesUncommittedDocument(t *testing.T) {
 	root, store := scaffold(t)
 	// Uncommitted doc edit — even with a clean code scope.
 	wf(t, root, ".vanguard/docs/payments.md",
-		"---\nid: payments\nwatches:\n  paths: [\"src/payments/**\"]\n---\n# uncommitted\n")
+		"---\nid: payments\nschema: none\nwatches:\n  paths: [\"src/payments/**\"]\n---\n# uncommitted\n")
 	e := load(t, store)
 	res, err := e.Observe(ObserveRequest{DocID: "payments"})
 	if err != nil {
@@ -268,7 +268,7 @@ func TestReviewAfterFires(t *testing.T) {
 		t.Fatal(err)
 	}
 	wf(t, root, ".vanguard/vanguard.yaml", "version: 1\n")
-	wf(t, root, ".vanguard/docs/glossary.md", "---\nid: glossary\nwatches:\n  review_after: 30d\n---\nbody")
+	wf(t, root, ".vanguard/docs/glossary.md", "---\nid: glossary\nschema: none\nwatches:\n  review_after: 30d\n---\nbody")
 	wf(t, root, "code.txt", "x") // hash mode: no .git
 
 	e := load(t, store)
@@ -392,5 +392,136 @@ func TestJSONEnvelopeShape(t *testing.T) {
 	}
 	if !strings.Contains(yamlOut, "mode: all") {
 		t.Fatalf("yaml envelope:\n%s", yamlOut)
+	}
+}
+
+// --- schema enforcement (structure layer M2) ---
+
+const testProfile = `{
+  "x-vanguard": {
+    "format": "markdown",
+    "required_sections": ["Interface"],
+    "citation_sections": [],
+    "citation_pattern": ""
+  }
+}`
+
+// scaffoldBound scaffolds a store whose document declares a real schema.
+func scaffoldBound(t *testing.T) (string, string) {
+	t.Helper()
+	root, store := scaffold(t)
+	if err := os.MkdirAll(filepath.Join(store, "schemas"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(store, "schemas", "pkg.schema.json"), []byte(testProfile), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	return root, store
+}
+
+func TestMissingSchemaFieldIsFatal(t *testing.T) {
+	root, store := scaffold(t)
+	// A document without any schema field is unattestable silence.
+	if err := os.WriteFile(filepath.Join(root, ".vanguard", "docs", "ghost.md"),
+		[]byte("---\nid: ghost\nwatches:\n  paths: [\"src/**\"]\n---\n# ghost spec\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Load(store, Options{Now: time.Now()}); err == nil ||
+		!strings.Contains(err.Error(), "declares no schema") {
+		t.Fatalf("missing schema field must be fatal, got %v", err)
+	}
+}
+
+func TestUnknownSchemaNameIsFatal(t *testing.T) {
+	root, store := scaffold(t)
+	if err := os.WriteFile(filepath.Join(root, ".vanguard", "docs", "payments.md"),
+		[]byte("---\nid: payments\nschema: ghost\nwatches:\n  paths: [\"src/payments/**\"]\n---\n# payments spec\n"), 0o644); err != nil {
+		t.Fatal("write failed")
+	}
+	if _, err := Load(store, Options{Now: time.Now()}); err == nil ||
+		!strings.Contains(err.Error(), "declared but not found") {
+		t.Fatalf("unknown schema must be fatal, got %v", err)
+	}
+}
+
+func TestCorruptSchemaFileIsFatal(t *testing.T) {
+	root, store := scaffold(t)
+	if err := os.MkdirAll(filepath.Join(store, "schemas"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(store, "schemas", "pkg.schema.json"), []byte("{not json"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, ".vanguard", "docs", "payments.md"),
+		[]byte("---\nid: payments\nschema: pkg\nwatches:\n  paths: [\"src/payments/**\"]\n---\n# payments spec\n"), 0o644); err != nil {
+		t.Fatal("write failed")
+	}
+	if _, err := Load(store, Options{Now: time.Now()}); err == nil ||
+		!strings.Contains(err.Error(), "not valid JSON") {
+		t.Fatalf("corrupt schema must be fatal, got %v", err)
+	}
+}
+func TestStructureViolationIsFatalBitAndListed(t *testing.T) {
+	root, store := scaffoldBound(t)
+	// Missing the required Interface section.
+	if err := os.WriteFile(filepath.Join(root, ".vanguard", "docs", "payments.md"),
+		[]byte("---\nid: payments\nschema: pkg\nwatches:\n  paths: [\"src/payments/**\"]\n---\n# payments spec\n\nNo interface here.\n"), 0o644); err != nil {
+		t.Fatal("write failed")
+	}
+	e := load(t, store)
+	res, err := e.Check(Selection{Mode: ModeAll})
+	if err != nil {
+		t.Fatal(err)
+	}
+	env := res.Envelope
+	if env.ExitBits&BitFatal == 0 {
+		t.Fatalf("structure violations must set the fatal bit: bits = %d", env.ExitBits)
+	}
+	if len(env.Documents) != 1 || len(env.Documents[0].Violations) == 0 {
+		t.Fatalf("violations must be listed on the document: %+v", env.Documents)
+	}
+	if env.Documents[0].Violations[0].Rule != "structure_missing_section" {
+		t.Fatalf("rule = %s", env.Documents[0].Violations[0].Rule)
+	}
+}
+
+func TestCompliantDocumentIsFreshNotFatal(t *testing.T) {
+	root, store := scaffoldBound(t)
+	if err := os.WriteFile(filepath.Join(root, ".vanguard", "docs", "payments.md"),
+		[]byte("---\nid: payments\nschema: pkg\nwatches:\n  paths: [\"src/payments/**\"]\n---\n# payments spec\n\n## Interface\n\n- api [payments.go:API]\n"), 0o644); err != nil {
+		t.Fatal("write failed")
+	}
+	commitAll(t, root)
+	e := load(t, store)
+	if _, err := e.Observe(ObserveRequest{DocID: "payments"}); err != nil {
+		t.Fatal(err)
+	}
+	e2 := load(t, store)
+	res, err := e2.Check(Selection{Mode: ModeAll})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Envelope.ExitBits != 0 {
+		t.Fatalf("compliant document must be clean: bits = %d", res.Envelope.ExitBits)
+	}
+}
+
+func TestObserveRefusesStructureViolation(t *testing.T) {
+	root, store := scaffoldBound(t)
+	if err := os.WriteFile(filepath.Join(root, ".vanguard", "docs", "payments.md"),
+		[]byte("---\nid: payments\nschema: pkg\nwatches:\n  paths: [\"src/payments/**\"]\n---\n# payments spec\n\nNo interface here.\n"), 0o644); err != nil {
+		t.Fatal("write failed")
+	}
+	commitAll(t, root)
+	e := load(t, store)
+	res, err := e.Observe(ObserveRequest{DocID: "payments"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(res.Refusals) != 1 || res.Refusals[0].Reason != "structure violations" {
+		t.Fatalf("observe must refuse a schema-violating document: %+v", res.Refusals)
+	}
+	if res.Envelope.ExitBits&BitFatal == 0 {
+		t.Fatalf("refusal must be fatal: bits = %d", res.Envelope.ExitBits)
 	}
 }

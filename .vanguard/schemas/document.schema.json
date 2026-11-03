@@ -2,9 +2,9 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://github.com/vanguard-lint/vanguard-spec/.vanguard/schemas/document.schema.json",
   "title": "Vanguard store document engine fields",
-  "description": "The engine-owned frontmatter contract every store document under .vanguard/docs/ must satisfy. Everything outside these fields is user-defined and opaque to the engine. The structure layer (M2) enforces this schema at discovery time; until then it is the reviewed contract.",
+  "description": "The engine-owned frontmatter contract every store document under .vanguard/docs/ must satisfy. Everything outside these fields is user-defined and opaque to the engine. Enforced at discovery time: a document that omits `schema:` (or names a schema that is missing or corrupt) fails load with a fatal error.",
   "type": "object",
-  "required": ["id"],
+  "required": ["id", "schema"],
   "additionalProperties": true,
   "properties": {
     "id": {
@@ -15,8 +15,8 @@
     },
     "schema": {
       "type": "string",
-      "pattern": "^[a-z0-9][a-z0-9._-]*$",
-      "description": "Optional name of the JSON Schema in .vanguard/schemas/ that binds this document's content (file <name>.schema.json). Important documents declare one; some documents legitimately have none."
+      "pattern": "^(none|[a-z0-9][a-z0-9._-]*)$",
+      "description": "Mandatory binding declaration. `none` is the explicit opt-out (no schema file exists for this document); any other value names the JSON Schema in .vanguard/schemas/ that binds this document's content (file <name>.schema.json). Omitting the field entirely is a load-time fatal error — silence is never an accepted binding."
     },
     "watches": {
       "type": "object",

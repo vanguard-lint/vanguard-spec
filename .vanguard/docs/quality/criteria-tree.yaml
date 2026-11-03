@@ -4,6 +4,8 @@
 # the L2.2.d children). Bound by .vanguard/schemas/criteria-tree.schema.json.
 # Status of every node is DRAFT until an adversarial round freezes it (G4: this
 # file plus the round log are where Decomposer/Attacker/Referee results live).
+id: criteria-tree
+schema: criteria-tree
 schema_version: 1
 source: "docs/designs/vanguard-quality-plan.en.md"
 nodes:

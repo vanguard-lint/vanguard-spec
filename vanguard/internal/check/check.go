@@ -58,6 +58,24 @@ func staleBit(d Document) int {
 	return 0
 }
 
+// applyStructure copies the document's declared-schema findings into the
+// envelope and escalates them to the fatal bit: a document that violates
+// the contract it declared is a broken store, loud by default.
+func (e *Engine) applyStructure(doc *docmodel.Doc, d *Document, bits *int) {
+	vs := e.StructureViolations[doc.ID]
+	for _, v := range vs {
+		d.Violations = append(d.Violations, Violation{
+			Rule:    v.Rule,
+			File:    v.File,
+			Line:    v.Line,
+			Message: v.Message,
+		})
+	}
+	if len(vs) > 0 {
+		*bits |= BitFatal
+	}
+}
+
 // checkAll — two-phase: structure (discovery already fails closed on parse
 // and id errors; schema enforcement is phase-1 for later milestones), then
 // freshness for every document.
@@ -70,6 +88,7 @@ func (e *Engine) checkAll(sel Selection) (*Result, error) {
 	for i := range e.Docs {
 		doc := &e.Docs[i]
 		d, watched := e.evaluate(doc, sel)
+		e.applyStructure(doc, &d, &bits)
 		if !watched {
 			env.Unwatched = append(env.Unwatched, doc.ID)
 		}
@@ -312,6 +331,8 @@ func (e *Engine) checkDoc(sel Selection) (*Result, error) {
 	if d.Status == StatusDirty {
 		bits |= BitDirty
 	}
+	e.applyStructure(doc, &d, &bits)
+	env.Documents[len(env.Documents)-1] = d
 	env.ExitBits = bits
 	res.Envelope = env
 	return res, nil
@@ -336,7 +357,9 @@ func (e *Engine) checkPath(sel Selection) (*Result, error) {
 			continue
 		}
 		d, _ := e.evaluate(doc, sel)
-		if d.Status == StatusFresh {
+		var bitsDoc int
+		e.applyStructure(doc, &d, &bitsDoc)
+		if d.Status == StatusFresh && len(d.Violations) == 0 {
 			continue // fresh matches are omitted
 		}
 		if d.Status == StatusUnobserved {
@@ -347,6 +370,7 @@ func (e *Engine) checkPath(sel Selection) (*Result, error) {
 		if d.Status == StatusDirty {
 			bits |= BitDirty
 		}
+		bits |= bitsDoc
 	}
 	env.ExitBits = bits
 	sortDocs(env.Documents)

@@ -14,7 +14,13 @@
   },
   "anyOf": [
     {
-      "comment": "Structural encoding of the markdown contract: the required H1 title, the four contract sections in order, and per-claim citation format. Machine enforcement lands with the M2 structure layer; until then this schema is the reviewed structure contract checked in review.",
+      "comment": "Structural encoding of the markdown contract: the required H1 title, the four contract sections in order, and per-claim citation format. The x-vanguard block is the machine-enforceable projection consumed by the engine's structure layer; the prose keys remain the reviewed contract.",
+      "x-vanguard": {
+        "format": "markdown",
+        "required_sections": ["Interface", "Invariants", "Side effects", "Verification"],
+        "citation_sections": ["Interface", "Invariants", "Side effects"],
+        "citation_pattern": "\\[[A-Za-z0-9_./-]+\\.(go|md|yaml|json):[A-Za-z0-9_]+\\]"
+      },
       "required": ["h1", "required_sections", "citation_format"],
       "properties": {
         "h1": { "const": "# <package> — <one-line role>" },

@@ -11,6 +11,7 @@ import (
 	"github.com/vanguard-lint/vanguard/internal/hashnorm"
 	"github.com/vanguard-lint/vanguard/internal/lockfile"
 	"github.com/vanguard-lint/vanguard/internal/provider"
+	"github.com/vanguard-lint/vanguard/internal/structure"
 )
 
 // Engine wires the store: config, discovery, lock, and provider.
@@ -27,6 +28,9 @@ type Engine struct {
 	LockSeen  bool // the lockfile exists on disk
 	Prov      provider.Provider
 	Now       time.Time
+	// StructureViolations maps a document id to the findings of the schema
+	// it declared. Empty when every declared schema is satisfied.
+	StructureViolations map[string][]structure.Violation
 }
 
 // Options tune one engine run.
@@ -80,6 +84,36 @@ func Load(storeDir string, opts Options) (*Engine, error) {
 	}
 	e.Docs = docs
 	e.Warnings = warnings
+
+	// Structure enforcement: every document declares its binding. A missing
+	// `schema:` field is fatal — silence would be the lie G3 forbids. The
+	// literal value `none` is the explicit opt-out; any other name must
+	// resolve to .vanguard/schemas/<name>.schema.json, and a missing or
+	// corrupt schema file is fatal here — load-time is the fail-closed gate.
+	structureViolations := map[string][]structure.Violation{}
+	schemasDir := filepath.Join(storeDir, "schemas")
+	profiles := map[string]*structure.Profile{}
+	for i := range e.Docs {
+		d := &e.Docs[i]
+		if d.Schema == "" {
+			return nil, fmt.Errorf("document %q (%s) declares no schema — every store document must bind one; declare `schema: none` to opt out explicitly", d.ID, d.RelPath)
+		}
+		if d.Schema == "none" {
+			continue
+		}
+		prof, cached := profiles[d.Schema]
+		if !cached {
+			prof, err = structure.Load(schemasDir, d.Schema)
+			if err != nil {
+				return nil, err
+			}
+			profiles[d.Schema] = prof
+		}
+		if v := structure.Validate(d.RelPath, d.Raw, prof, d.Format); len(v) > 0 {
+			structureViolations[d.ID] = v
+		}
+	}
+	e.StructureViolations = structureViolations
 
 	e.LockPath = filepath.Join(storeDir, "vanguard.lock")
 	lock, raw, err := lockfile.Load(e.LockPath)

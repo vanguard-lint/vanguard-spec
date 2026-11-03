@@ -3,6 +3,7 @@ package docmodel
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -171,5 +172,35 @@ func TestReviewAfterGrammarEnforced(t *testing.T) {
 	writeDoc(t, root, "bad.md", "---\nid: bad\nwatches:\n  review_after: 30s\n---\n")
 	if _, _, err := Discover(root, []string{"**/*.md"}, map[string]string{"md": "markdown"}); err == nil {
 		t.Fatal("seconds are not in the review_after grammar")
+	}
+}
+
+// Whole-document formats: engine fields are a subset; user fields are opaque.
+func TestYAMLUserFieldsAreOpaque(t *testing.T) {
+	root := t.TempDir()
+	writeDoc(t, root, "tree.yaml", "id: tree\nschema: none\nschema_version: 1\nsource: \"designs/x.md\"\nnodes:\n  - node_id: L0\n")
+	docs, _, err := Discover(root, []string{"**/*"}, map[string]string{"yaml": "yaml", "md": "markdown"})
+	if err != nil {
+		t.Fatalf("user fields must be opaque to the engine: %v", err)
+	}
+	if len(docs) != 1 || docs[0].ID != "tree" || docs[0].Schema != "none" {
+		t.Fatalf("docs = %+v", docs)
+	}
+}
+
+func TestYAMLDuplicateKeyFatal(t *testing.T) {
+	root := t.TempDir()
+	writeDoc(t, root, "dup.yaml", "id: dup\nschema: none\nschema: none\n")
+	if _, _, err := Discover(root, []string{"**/*"}, map[string]string{"yaml": "yaml", "md": "markdown"}); err == nil ||
+		!strings.Contains(err.Error(), "duplicate key") {
+		t.Fatalf("duplicate top-level key must be fatal, got %v", err)
+	}
+}
+
+func TestYAMLAnchorInUserSectionStillFatal(t *testing.T) {
+	root := t.TempDir()
+	writeDoc(t, root, "anch.yaml", "id: anch\nschema: none\nuser_block: &a [1, 2]\nref: *a\n")
+	if _, _, err := Discover(root, []string{"**/*"}, map[string]string{"yaml": "yaml", "md": "markdown"}); err == nil {
+		t.Fatal("anchors/aliases anywhere in a yaml document must stay fatal")
 	}
 }

@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/vanguard-lint/vanguard-spec/.vanguard/schemas/quality-result.schema.json",
+  "title": "Quality criteria benchmark result",
+  "description": "Binding for the scored result of the criteria tree (.vanguard/docs/quality/results.yaml). Every criteria-tree node appears exactly once with an explicit score. A pass without a benchmark command is invalid: scores must be earned by real test runs, never asserted. Declared by frontmatter: schema: quality-result.",
+  "type": "object",
+  "required": ["schema_version", "criteria_source", "benchmarked_at", "entries", "summary"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "const": 1 },
+    "criteria_source": {
+      "type": "string",
+      "const": ".vanguard/docs/quality/criteria-tree.yaml",
+      "description": "The scored tree; entries must cover exactly its node ids."
+    },
+    "benchmarked_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the benchmark batch ran; every pass entry's evidence must be no older than this."
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["node_id", "status", "score"],
+        "additionalProperties": false,
+        "properties": {
+          "node_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$",
+            "maxLength": 128
+          },
+          "status": {
+            "enum": ["pass", "fail", "partial", "not_run", "blocked"],
+            "description": "pass = benchmarked green; partial = some evidence green, gaps named in notes; fail = benchmarked red; not_run = no benchmark exists yet; blocked = an upstream gate prevents running."
+          },
+          "score": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100,
+            "description": "0 blocked/not_run/fail, 50 partial, 100 pass — the scoring is mechanical, not vibes."
+          },
+          "benchmark": {
+            "type": "string",
+            "description": "Exact command whose output is the evidence. Mandatory for status pass and fail."
+          },
+          "evidence": {
+            "type": "string",
+            "description": "Concrete result digest (counts, exit code, coverage numbers) from the benchmark run."
+          },
+          "notes": { "type": "string" }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "status": { "enum": ["pass", "fail"] } } },
+          "then": { "required": ["benchmark", "evidence"] }
+        },
+        {
+          "if": { "properties": { "status": { "enum": ["pass"] } } },
+          "then": { "properties": { "score": { "const": 100 } } }
+        },
+        {
+          "if": { "properties": { "status": { "enum": ["partial"] } } },
+          "then": { "properties": { "score": { "const": 50 } } }
+        },
+        {
+          "if": { "properties": { "status": { "enum": ["fail", "not_run", "blocked"] } } },
+          "then": { "properties": { "score": { "const": 0 } } }
+        }
+      ]
+    },
+    "summary": {
+      "type": "object",
+      "required": ["total_nodes", "scored_percent"],
+      "additionalProperties": false,
+      "properties": {
+        "total_nodes": { "type": "integer", "minimum": 1 },
+        "pass": { "type": "integer", "minimum": 0 },
+        "partial": { "type": "integer", "minimum": 0 },
+        "fail": { "type": "integer", "minimum": 0 },
+        "not_run": { "type": "integer", "minimum": 0 },
+        "blocked": { "type": "integer", "minimum": 0 },
+        "scored_percent": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "sum(score) / (100 * total_nodes) * 100."
+        }
+      }
+    }
+  }
+}

@@ -215,7 +215,46 @@ func parseTopLevelFields(raw []byte) (*frontmatter, []byte, error) {
 	if len(raw) > FrontmatterCap {
 		return &frontmatter{}, raw, fmt.Errorf("document exceeds %d KiB — split the document", FrontmatterCap/1024)
 	}
-	meta, err := decodeStrict(raw)
+	// Whole-document formats: the engine fields are a subset of the user's
+	// document. The engine rejects YAML tricks across the full tree, then
+	// decodes ONLY its four engine keys strictly. Everything else —
+	// schema_version, source, nodes, ... — is user-owned and opaque (G5);
+	// an unknown user field is content, never an error.
+	var root yaml.Node
+	if err := yaml.Unmarshal(raw, &root); err != nil {
+		return &frontmatter{}, raw, fmt.Errorf("document is not valid YAML: %w", err)
+	}
+	if err := rejectYAMLTricks(&root); err != nil {
+		return &frontmatter{}, raw, err
+	}
+	if root.Kind != yaml.DocumentNode || len(root.Content) == 0 {
+		return &frontmatter{}, raw, fmt.Errorf("document must be a mapping at the top level")
+	}
+	m := root.Content[0]
+	if m.Kind != yaml.MappingNode {
+		return &frontmatter{}, raw, fmt.Errorf("document must be a mapping at the top level")
+	}
+	engine := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
+	seen := map[string]bool{}
+	for i := 0; i+1 < len(m.Content); i += 2 {
+		key, val := m.Content[i], m.Content[i+1]
+		if key.Kind != yaml.ScalarNode {
+			return &frontmatter{}, raw, fmt.Errorf("frontmatter: mapping key at line %d is not a scalar", key.Line)
+		}
+		if seen[key.Value] {
+			return &frontmatter{}, raw, fmt.Errorf("frontmatter: duplicate key %q at line %d", key.Value, key.Line)
+		}
+		seen[key.Value] = true
+		switch key.Value {
+		case "id", "schema", "watches", "bindings":
+			engine.Content = append(engine.Content, key, val)
+		}
+	}
+	out, err := yaml.Marshal(engine)
+	if err != nil {
+		return &frontmatter{}, raw, fmt.Errorf("frontmatter: %w", err)
+	}
+	meta, err := decodeStrict(out)
 	if err != nil {
 		return &frontmatter{}, raw, err
 	}

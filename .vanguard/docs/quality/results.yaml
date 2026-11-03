@@ -1,0 +1,453 @@
+id: results
+schema: quality-result
+watches:
+  review_after: 30d
+schema_version: 1
+criteria_source: ".vanguard/docs/quality/criteria-tree.yaml"
+benchmarked_at: "2026-11-03T00:00:00Z"
+# Scoring rules: pass=100 (benchmark mandatory), partial=50, fail/not_run/blocked=0.
+# Parent nodes roll up mechanically from children; a pass without a benchmark is invalid.
+entries:
+  - node_id: L0_VANGUARD_INVARIANT
+    status: partial
+    score: 50
+    evidence: "roll-up of all L1 branches"
+  - node_id: L1.1_SEMANTIC_CORRECTNESS
+    status: partial
+    score: 50
+    evidence: "roll-up of its L2 branches"
+  - node_id: L1.2_STATE_INTEGRITY
+    status: partial
+    score: 50
+    evidence: "roll-up of its L2 branches"
+  - node_id: L1.3_OPERATIONAL_TIMELINESS
+    status: partial
+    score: 50
+    evidence: "roll-up of its L2 branches"
+  - node_id: L1.4_AUDITABILITY
+    status: partial
+    score: 50
+    evidence: "roll-up of its L2 branches"
+  - node_id: L1.5_EXECUTION_CONTAINMENT
+    status: partial
+    score: 50
+    evidence: "roll-up of its L2 branches"
+  - node_id: L2.1.a_SCOPE_HASH
+    status: partial
+    score: 50
+    evidence: "roll-up: 1/3 children pass"
+  - node_id: L2.1.b_ANCHOR_RESOLUTION
+    status: partial
+    score: 50
+    evidence: "roll-up: 0/3 children pass"
+  - node_id: L2.1.c_DIRTY_DETECTION
+    status: partial
+    score: 50
+    evidence: "roll-up: 1/3 children pass"
+  - node_id: L2.1.d_DOCUMENT_AND_CLOCK_AXES
+    status: pass
+    score: 100
+    evidence: "roll-up: 3/3 children pass"
+  - node_id: L2.1.e_PATH_LOOKUP_AND_ATTRIBUTION
+    status: partial
+    score: 50
+    evidence: "roll-up: 1/3 children pass"
+  - node_id: L2.1.f_STRUCTURE_VERIFICATION
+    status: partial
+    score: 50
+    evidence: "roll-up: 3/4 children pass"
+  - node_id: L2.2.a_LOCK_WRITE_RACES
+    status: partial
+    score: 50
+    evidence: "roll-up: 1/3 children pass"
+  - node_id: L2.2.b_SERIALIZATION_PORTABILITY
+    status: partial
+    score: 50
+    evidence: "roll-up: 1/3 children pass"
+  - node_id: L2.2.c_LOST_OR_CORRUPT_LOCK
+    status: partial
+    score: 50
+    evidence: "roll-up: 3/4 children pass"
+  - node_id: L2.2.d_LOCK_HAND_EDIT_OR_FORGERY
+    status: partial
+    score: 50
+    evidence: "roll-up: 0/6 children pass"
+  - node_id: L2.2.e_ENTRY_SHAPE_AND_VERSION
+    status: partial
+    score: 50
+    evidence: "roll-up: 1/2 children pass"
+  - node_id: L2.2.f_STORE_CONFIG_TAMPERING
+    status: partial
+    score: 50
+    evidence: "roll-up: 2/3 children pass"
+  - node_id: L2.3.a_CONTAINMENT_LEAK_INTO_HOT_PATH
+    status: partial
+    score: 50
+    evidence: "roll-up: 0/2 children pass"
+  - node_id: L2.3.b_PERFORMANCE_BUDGET
+    status: partial
+    score: 50
+    evidence: "roll-up: 0/3 children pass"
+  - node_id: L2.3.c_NON_DETERMINISM
+    status: partial
+    score: 50
+    evidence: "roll-up: 0/2 children pass"
+  - node_id: L2.3.d_FRESH_CLONE_AND_CI
+    status: partial
+    score: 50
+    evidence: "roll-up: 0/2 children pass"
+  - node_id: L2.4.a_ATTESTATION_VISIBILITY
+    status: partial
+    score: 50
+    evidence: "roll-up: 0/2 children pass"
+  - node_id: L2.4.b_ACTIONABILITY
+    status: partial
+    score: 50
+    evidence: "roll-up: 0/2 children pass"
+  - node_id: L2.4.c_ENVELOPE_AND_EXIT_BITS
+    status: partial
+    score: 50
+    evidence: "roll-up: 0/3 children pass"
+  - node_id: L2.4.d_OBSERVE_ABUSE
+    status: partial
+    score: 50
+    evidence: "roll-up: 0/3 children pass"
+  - node_id: L2.5.a_BINDING_RESULTS_LEAK
+    status: partial
+    score: 50
+    evidence: "roll-up: 0/3 children pass"
+  - node_id: L2.5.b_ARBITRARY_EXECUTION
+    status: partial
+    score: 50
+    evidence: "roll-up: 1/3 children pass"
+  - node_id: L2.5.c_BINARY_SUPPLY_CHAIN
+    status: partial
+    score: 50
+    evidence: "roll-up: 0/3 children pass"
+  - node_id: L2.5.d_WRITES_OUTSIDE_BOUNDARY
+    status: partial
+    score: 50
+    evidence: "roll-up: 0/2 children pass"
+  - node_id: L4.1.1.a-1
+    status: pass
+    score: 100
+    benchmark: "go test ./internal/provider/ ./internal/scope/ -count=1"
+    evidence: "TestScopeHashReactsToChange + TestHashEntriesPathIsPartOfTheHash: hash changes when the (path,mode,blob) set changes"
+  - node_id: L4.1.1.a-2
+    status: partial
+    score: 50
+    benchmark: "go test ./internal/scope/ ./internal/pathmatch/ -count=1"
+    evidence: "scope+pathmatch vector suites green; overlap-not-deduped vector not explicitly present"
+  - node_id: L4.1.1.a-3
+    status: not_run
+    score: 0
+    evidence: "no benchmark exists yet"
+  - node_id: L4.1.1.b-1
+    status: not_run
+    score: 0
+    evidence: "no benchmark exists yet"
+  - node_id: L4.1.1.b-2
+    status: not_run
+    score: 0
+    evidence: "no benchmark exists yet"
+  - node_id: L4.1.1.b-3
+    status: partial
+    score: 50
+    benchmark: "go test ./internal/provider/ -count=1"
+    evidence: "TestAnchorReachable covers reachability; in-ODB-but-not-ancestor vector not isolated"
+  - node_id: L4.1.1.c-1
+    status: pass
+    score: 100
+    benchmark: "go test ./internal/provider/ -count=1"
+    evidence: "TestDirtyDetection (incl. autocrlf phantom-dirty regression) green"
+  - node_id: L4.1.1.c-2
+    status: partial
+    score: 50
+    benchmark: "go test ./internal/check/ -run TestUncommittedChurnIsDirty -count=1"
+    evidence: "dirty bit 4 asserted; hint presence not asserted"
+  - node_id: L4.1.1.c-3
+    status: not_run
+    score: 0
+    evidence: "no benchmark exists yet"
+  - node_id: L4.1.1.d-1
+    status: pass
+    score: 100
+    benchmark: "go test ./internal/check/ -count=1"
+    evidence: "TestDocumentEditMakesStale: document axis fires on edits"
+  - node_id: L4.1.1.d-2
+    status: pass
+    score: 100
+    benchmark: "go test ./internal/hashnorm/ -count=1"
+    evidence: "TestMandatoryVectors: 8/8 normalization vectors"
+  - node_id: L4.1.1.d-3
+    status: pass
+    score: 100
+    benchmark: "go test ./internal/check/ ./internal/duration/ -count=1"
+    evidence: "TestReviewAfterFires with fixed Now + duration parse/tunable/rejections suite"
+  - node_id: L4.1.1.e-1
+    status: pass
+    score: 100
+    benchmark: "go test ./internal/pathmatch/ -count=1"
+    evidence: "TestPathVectors + TestMatching: decide() vector suite"
+  - node_id: L4.1.1.e-2
+    status: partial
+    score: 50
+    benchmark: "go test ./internal/provider/ -count=1"
+    evidence: "TestAttribution green; not cross-checked against git log --first-parent oracle"
+  - node_id: L4.1.1.e-3
+    status: partial
+    score: 50
+    benchmark: "go test ./internal/check/ -run TestRangeModeLockfree -count=1"
+    evidence: "affected_in_range lockfree path green; no git diff --name-only oracle diff"
+  - node_id: L4.1.1.f-1
+    status: pass
+    score: 100
+    benchmark: "go test ./internal/structure/ ./internal/check/ -count=1"
+    evidence: "violation corpus: missing_section, section_order, duplicate_section, missing_citation, format_mismatch, unknown/corrupt/absent schema — each asserted caught (0 false-pass)"
+  - node_id: L4.1.1.f-2
+    status: pass
+    score: 100
+    benchmark: "go test ./internal/structure/ ./internal/check/ -count=1"
+    evidence: "TestValidDocumentPasses + TestCompliantDocumentIsFreshNotFatal + TestExistenceOnlySchemaValidatesNothing (0 false-fail)"
+  - node_id: L4.1.1.f-3
+    status: pass
+    score: 100
+    benchmark: "go test ./internal/structure/ -count=1"
+    evidence: "TestSectionOrderCaught (line 3) + TestUncitedClaimCaughtWithLine (line 6): rule/file/line/message quadruple with exact lines"
+  - node_id: L4.1.1.f-4
+    status: partial
+    score: 50
+    benchmark: "go test ./internal/structure/ ./internal/docmodel/ -count=1"
+    evidence: "caps enforced at load (id<=128, FrontmatterCap 256KiB, regex compiled at load); no fuzz harness yet"
+  - node_id: L4.2.2.a-1
+    status: pass
+    score: 100
+    benchmark: "go test ./internal/lockfile/ -count=1"
+    evidence: "TestSaveCASAndAtomicity: CAS race runs, no lost updates"
+  - node_id: L4.2.2.a-2
+    status: partial
+    score: 50
+    benchmark: "go test ./internal/lockfile/ -count=1"
+    evidence: "atomicity asserted; losing side exit-bit-1 not asserted end-to-end"
+  - node_id: L4.2.2.a-3
+    status: partial
+    score: 50
+    benchmark: "go test ./internal/lockfile/ -count=1"
+    evidence: "atomic rename covered; no kill-injection harness"
+  - node_id: L4.2.2.b-1
+    status: pass
+    score: 100
+    benchmark: "go test ./internal/lockfile/ -count=1"
+    evidence: "TestCanonicalForm + TestRoundTrip"
+  - node_id: L4.2.2.b-2
+    status: not_run
+    score: 0
+    evidence: "no benchmark exists yet"
+  - node_id: L4.2.2.b-3
+    status: not_run
+    score: 0
+    evidence: "no benchmark exists yet"
+  - node_id: L4.2.2.c-1
+    status: pass
+    score: 100
+    benchmark: "go test ./internal/check/ -run TestLockLost -count=1"
+    evidence: "lockfile absent + all unobserved -> lock_lost, stale bit in all mode"
+  - node_id: L4.2.2.c-2
+    status: pass
+    score: 100
+    benchmark: "go test ./internal/lockfile/ -count=1"
+    evidence: "TestCorruptLockFails; engine fails closed"
+  - node_id: L4.2.2.c-3
+    status: partial
+    score: 50
+    benchmark: "go test ./internal/check/ -run TestStrictElevatesGaps -count=1"
+    evidence: "--strict elevation asserted for gaps; emptied-lock case not isolated"
+  - node_id: L4.2.2.c-4
+    status: pass
+    score: 100
+    benchmark: "go test ./internal/check/ -run TestInitlessCheckUnobserved -count=1"
+    evidence: "valid bootstrap not reported as lost-lock"
+  - node_id: L4.2.2.d-1
+    status: not_run
+    score: 0
+    evidence: "no benchmark exists yet"
+  - node_id: L4.2.2.d-2
+    status: not_run
+    score: 0
+    evidence: "no benchmark exists yet"
+  - node_id: L4.2.2.d-3
+    status: not_run
+    score: 0
+    evidence: "no benchmark exists yet"
+  - node_id: L4.2.2.d-4
+    status: not_run
+    score: 0
+    evidence: "no benchmark exists yet"
+  - node_id: L4.2.2.d-5
+    status: not_run
+    score: 0
+    evidence: "no benchmark exists yet"
+  - node_id: L4.2.2.d-6
+    status: blocked
+    score: 0
+    evidence: "no binary oracle exists (Risk Register R1); by design not machine-measurable"
+  - node_id: L4.2.2.e-1
+    status: partial
+    score: 50
+    benchmark: "go test ./internal/lockfile/ -count=1"
+    evidence: "TestSnapshotShape; shape-mismatch -> unobserved+hint path not asserted"
+  - node_id: L4.2.2.e-2
+    status: pass
+    score: 100
+    benchmark: "go test ./internal/lockfile/ -count=1"
+    evidence: "TestUnknownFieldsPreserved across an observe"
+  - node_id: L4.2.2.f-1
+    status: pass
+    score: 100
+    benchmark: "go test ./internal/config/ -count=1"
+    evidence: "TestAnchorsAndAliasesRejected + TestBindings + TestUnknownFormatRejected + TestIDGrammar: bad configs always fatal"
+  - node_id: L4.2.2.f-2
+    status: pass
+    score: 100
+    benchmark: "go test ./internal/scope/ -count=1"
+    evidence: "TestFilterStore: store excluded from scope"
+  - node_id: L4.2.2.f-3
+    status: not_run
+    score: 0
+    evidence: "no benchmark exists yet"
+  - node_id: L4.2.3.a-1
+    status: not_run
+    score: 0
+    evidence: "no benchmark exists yet"
+  - node_id: L4.2.3.a-2
+    status: not_run
+    score: 0
+    evidence: "no benchmark exists yet"
+  - node_id: L4.2.3.b-1
+    status: not_run
+    score: 0
+    evidence: "no benchmark exists yet"
+  - node_id: L4.2.3.b-2
+    status: blocked
+    score: 0
+    evidence: "recovery-walk threshold not set (G3 gap recorded in quality-plan.md)"
+  - node_id: L4.2.3.b-3
+    status: partial
+    score: 50
+    benchmark: "go test ./internal/pathmatch/ -count=1"
+    evidence: "TestRejections covers malicious glob grammar; no hang fuzz"
+  - node_id: L4.2.3.c-1
+    status: partial
+    score: 50
+    benchmark: "go test ./internal/check/ -run TestJSONEnvelopeShape -count=1"
+    evidence: "envelope shape asserted; no 2-run byte-identity diff"
+  - node_id: L4.2.3.c-2
+    status: partial
+    score: 50
+    benchmark: "go test ./internal/check/ -count=1"
+    evidence: "sortDocs/sortStrings exercised; no golden ordering test"
+  - node_id: L4.2.3.d-1
+    status: partial
+    score: 50
+    benchmark: "go test ./internal/check/ -run TestInitlessCheckUnobserved -count=1"
+    evidence: "1 clone kind tested; matrix not run"
+  - node_id: L4.2.3.d-2
+    status: partial
+    score: 50
+    benchmark: "go test ./internal/provider/ -run TestUnbornRepository -count=1"
+    evidence: "unborn repo soft-handled; orphan anchor case missing"
+  - node_id: L4.2.4.a-1
+    status: partial
+    score: 50
+    benchmark: "go test ./internal/check/ -run 'TestObserveRefuses' -count=1"
+    evidence: "3 refusal kinds asserted with bits (dirty scope, uncommitted doc, structure violations); full table not covered"
+  - node_id: L4.2.4.a-2
+    status: not_run
+    score: 0
+    evidence: "no benchmark exists yet"
+  - node_id: L4.2.4.b-1
+    status: not_run
+    score: 0
+    evidence: "no benchmark exists yet"
+  - node_id: L4.2.4.b-2
+    status: not_run
+    score: 0
+    evidence: "no benchmark exists yet"
+  - node_id: L4.2.4.c-1
+    status: not_run
+    score: 0
+    evidence: "no benchmark exists yet"
+  - node_id: L4.2.4.c-2
+    status: not_run
+    score: 0
+    evidence: "no benchmark exists yet"
+  - node_id: L4.2.4.c-3
+    status: not_run
+    score: 0
+    evidence: "no benchmark exists yet"
+  - node_id: L4.2.4.d-1
+    status: not_run
+    score: 0
+    evidence: "no benchmark exists yet"
+  - node_id: L4.2.4.d-2
+    status: not_run
+    score: 0
+    evidence: "no benchmark exists yet"
+  - node_id: L4.2.4.d-3
+    status: blocked
+    score: 0
+    evidence: "deliberate observe abuse not machine-measurable (Risk Register R2); mitigated by verify --base + PR review"
+  - node_id: L4.2.5.a-1
+    status: partial
+    score: 50
+    benchmark: "go test ./internal/config/ -count=1"
+    evidence: "TestBindingRejections at config level; bit-2 pass/fail matrix not exercised end-to-end"
+  - node_id: L4.2.5.a-2
+    status: not_run
+    score: 0
+    evidence: "no benchmark exists yet"
+  - node_id: L4.2.5.a-3
+    status: not_run
+    score: 0
+    evidence: "no benchmark exists yet"
+  - node_id: L4.2.5.b-1
+    status: pass
+    score: 100
+    benchmark: "go test ./internal/config/ -count=1"
+    evidence: "TestBindingRejections: raw/unknown commands rejected — allowlist only"
+  - node_id: L4.2.5.b-2
+    status: not_run
+    score: 0
+    evidence: "no benchmark exists yet"
+  - node_id: L4.2.5.b-3
+    status: not_run
+    score: 0
+    evidence: "no benchmark exists yet"
+  - node_id: L4.2.5.c-1
+    status: not_run
+    score: 0
+    evidence: "no benchmark exists yet"
+  - node_id: L4.2.5.c-2
+    status: not_run
+    score: 0
+    evidence: "no benchmark exists yet"
+  - node_id: L4.2.5.c-3
+    status: not_run
+    score: 0
+    evidence: "no benchmark exists yet"
+  - node_id: L4.2.5.d-1
+    status: not_run
+    score: 0
+    evidence: "no benchmark exists yet"
+  - node_id: L4.2.5.d-2
+    status: not_run
+    score: 0
+    evidence: "no benchmark exists yet"
+summary:
+  total_nodes: 100
+  pass: 19
+  partial: 46
+  fail: 0
+  not_run: 32
+  blocked: 3
+  scored_percent: 42.0

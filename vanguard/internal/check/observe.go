@@ -1,6 +1,7 @@
 package check
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/vanguard-lint/vanguard/internal/docmodel"
@@ -123,6 +124,21 @@ func (e *Engine) attest(doc *docmodel.Doc, at time.Time) (lockfile.Entry, *refus
 		at = now
 	} else {
 		at = at.UTC()
+	}
+
+	// Structure gate: a document that violates the schema it declared is
+	// not attestable — observing garbage would launder it into FRESH.
+	if vs := e.StructureViolations[doc.ID]; len(vs) > 0 {
+		rules := make([]string, 0, len(vs))
+		for _, v := range vs {
+			rules = append(rules, fmt.Sprintf("%s (line %d)", v.Rule, v.Line))
+		}
+		return lockfile.Entry{}, &refusal{
+			bit:       BitFatal,
+			reason:    "structure violations",
+			offending: rules,
+			hint:      "fix the document to satisfy its declared schema, or remove the schema: field",
+		}
 	}
 
 	// Future-time guard: an attestation more than the skew tolerance in the
