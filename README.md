@@ -15,7 +15,7 @@
 
 <br>
 
-Vanguard is a standalone command-line tool that keeps specification documents honest. It manages a project's spec documents (markdown, JSON, YAML, and DSL dialects such as C4), verifies that each document follows the structure its owner declared, and answers one question deterministically:
+Vanguard is a standalone command-line tool that keeps specification documents honest. It manages a project's spec documents (markdown, JSON, and YAML), verifies that each document follows the structure its owner declared, and answers one question deterministically:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/assets/core-question-dark.svg?v=2">

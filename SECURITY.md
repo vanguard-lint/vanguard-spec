@@ -7,8 +7,15 @@ security problem here.
 ## Supported versions
 
 Only the latest commit on `main` is supported. The project does not maintain
-release branches; `go install ...@latest` and `@main` are the supported ways
-to run it.
+release branches; the supported way to run it is from source:
+
+```shell
+git clone https://github.com/vanguard-lint/vanguard-spec
+cd vanguard-spec/vanguard
+go install ./cmd/vanguard
+```
+
+or check out the latest tag (for example `v0.1.0`) before building.
 
 ## Reporting
 

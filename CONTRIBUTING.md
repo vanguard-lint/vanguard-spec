@@ -24,7 +24,7 @@ The tool is a single Go module. You need:
 
 ```shell
 git clone https://github.com/vanguard-lint/vanguard-spec
-cd vanguard-spec
+cd vanguard-spec/vanguard
 go build ./...
 go test ./...
 ```
@@ -36,8 +36,10 @@ browser or serve the folder with any file server. No build step.
 
 Follow the repository rule (`.vanguard/rules/git-commit-message.md`):
 `type(scope): subject` — for example `feat(check): report unobserved
-documents in the json envelope` or `docs(design): specify the dirty
-verdict`. Keep the subject imperative and under 72 characters.
+documents in the json envelope` or `docs(engine): specify the dirty
+verdict`. Keep the subject imperative and under 72 characters. The scope
+must come from the allowlist in the rule file (for example `engine`,
+`test`, `infra`); a scope the hook does not know is rejected.
 
 Every commit is machine-checked:
 
