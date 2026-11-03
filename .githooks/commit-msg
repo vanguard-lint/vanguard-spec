@@ -20,7 +20,7 @@ case "$subject" in
 esac
 
 types='spec|feat|fix|test|refactor|perf|build|ci|docs|style|chore|revert'
-scopes='claude|codex|opencode|deepseek|skill|agent|command|rule|spec|resource|test|infra|site|website|readme'
+scopes='claude|codex|opencode|deepseek|engine|skill|agent|command|rule|spec|resource|test|infra|site|website|readme'
 
 fail() {
   echo "commit message rejected by .vanguard/rules/git-commit-message.md:" >&2
