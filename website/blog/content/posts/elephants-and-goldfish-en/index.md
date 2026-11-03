@@ -7,13 +7,15 @@ author: Huy Nguyễn Việt
 Let me start with a confession: I got tired of spec-driven development.
 <!--more-->
 
+[![Vanguard and the Elephant-Goldfish Model](vs-egm.png)](vs-egm.png)
+
 The idea is lovely. Write the spec first, code second, and give the AI some rails to run on. But here's what I kept seeing in practice. You type a request, and a few seconds later you have a thirty-page document. Every heading is present and accounted for, and nobody can read it. We went straight from *request* to *document* and skipped every step in between. Those steps are exactly where the risk gets squeezed out.
 
 Then I found EGM.
 
 ## Elephants and goldfish
 
-The Elephant-Goldfish Model (EGM) is Dave Rensin's method. Dave is a Distinguished Engineer at Google. The idea is simple:
+The Elephant-Goldfish Model (EGM) is [Dave Rensin's method](https://www.linkedin.com/search/results/all/?keywords=elephant%20goldfish%20model&origin=HISTORY&position=0). Dave is a Distinguished Engineer at Google. The idea is simple:
 
 - **The Elephant** is a long working session with the AI. It remembers everything: the architecture, the intent, the small decisions along the way. It writes no code. It interviews you, argues with you, and keeps the record.
 - **The Goldfish** is a brand-new AI session with no memory. It's handed the design doc and nothing else. If it misunderstands the plan, that's not the goldfish's fault. The doc isn't clear enough.

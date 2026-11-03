@@ -7,13 +7,15 @@ author: Huy Nguyễn Việt
 Tôi bắt đầu với một lời thú nhận: tôi đã mệt mỏi với phát triển hướng đặc tả (spec-driven development).
 <!--more-->
 
+[![Vanguard và Mô hình Voi - Cá vàng](vs-egm.png)](vs-egm.png)
+
 Ý tưởng thì đẹp. Viết đặc tả trước, code sau, để AI có đường ray mà chạy. Nhưng thực tế tôi gặp thường như thế này: gõ một yêu cầu, và vài giây sau có ngay một tài liệu dài ba mươi trang. Đầy đủ mục, đầy đủ tiêu đề, và không ai đọc nổi. Chúng ta đã đi thẳng từ *yêu cầu* đến *tài liệu*, bỏ qua mọi bước ở giữa. Mà những bước ở giữa chính là nơi rủi ro được gỡ ra.
 
 Rồi tôi gặp EGM.
 
 ## Voi và cá vàng
 
-Elephant-Goldfish Model (EGM) là phương pháp của Dave Rensin, Distinguished Engineer tại Google. Ý tưởng khá đơn giản:
+Elephant-Goldfish Model (EGM) là [phương pháp của Dave Rensin](https://www.linkedin.com/search/results/all/?keywords=elephant%20goldfish%20model&origin=HISTORY&position=0), Distinguished Engineer tại Google. Ý tưởng khá đơn giản:
 
 - **Con voi** là một phiên làm việc dài với AI. Nó nhớ mọi thứ: kiến trúc, ý định, những quyết định nhỏ. Nó không viết code. Nó phỏng vấn bạn, tranh luận với bạn, và giữ biên bản.
 - **Con cá vàng** là một phiên AI mới tinh, không có trí nhớ. Nó chỉ được đọc tài liệu thiết kế. Nếu nó hiểu sai kế hoạch, thì lỗi không nằm ở con cá. Tài liệu chưa đủ rõ.
