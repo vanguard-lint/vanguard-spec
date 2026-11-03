@@ -13,7 +13,10 @@ import (
 	"github.com/vanguard-lint/vanguard/internal/check"
 )
 
-var version = "0.1.0"
+// version is injected at release time through
+// -ldflags "-X main.version=X.Y.Z" from the git tag — the single source of
+// truth per .vanguard/rules/versioning.md. Untagged builds report "dev".
+var version = "dev"
 
 func main() {
 	root := &cobra.Command{
