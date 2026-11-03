@@ -35,7 +35,7 @@ func renderText(env *Envelope) string {
 	var b strings.Builder
 	switch env.Mode {
 	case ModeObserve:
-		b.WriteString(fmt.Sprintf("Vanguard observe — %d attested", len(env.Documents)))
+		fmt.Fprintf(&b, "Vanguard observe — %d attested", len(env.Documents))
 		if len(env.Documents) > 0 {
 			for _, d := range env.Documents {
 				fmt.Fprintf(&b, "\n OBSERVED  %s  @ %s", d.Doc, short(d.Anchor))
@@ -47,14 +47,14 @@ func renderText(env *Envelope) string {
 			}
 		}
 	case ModeRange:
-		b.WriteString(fmt.Sprintf("Vanguard range — %d affected", len(env.AffectedInRange)))
+		fmt.Fprintf(&b, "Vanguard range — %d affected", len(env.AffectedInRange))
 		for _, d := range env.Documents {
 			fmt.Fprintf(&b, "\n AFFECTED  %s", d.Doc)
 			fmt.Fprintf(&b, "\n           paths: %s", strings.Join(d.ChangedPaths, ", "))
 			fmt.Fprintf(&b, "\n           commits: %s", strings.Join(d.IntroducingCommits, ", "))
 		}
 	default:
-		b.WriteString(fmt.Sprintf("Vanguard check — %d documents", len(env.Documents)))
+		fmt.Fprintf(&b, "Vanguard check — %d documents", len(env.Documents))
 		for _, d := range env.Documents {
 			fmt.Fprintf(&b, "\n %-9s %s", strings.ToUpper(d.Status), d.Doc)
 			if d.DocumentChanged {

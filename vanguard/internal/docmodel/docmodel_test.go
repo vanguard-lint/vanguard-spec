@@ -17,8 +17,6 @@ func writeDoc(t *testing.T, root, rel, content string) {
 	}
 }
 
-const formats = "md=markdown" // not used directly; see Discover calls
-
 func mdFront(id string) string {
 	return "---\nid: " + id + "\nwatches:\n  paths: [\"src/payments/**\"]\n  review_after: 90d\n---\n\n# Body\n"
 }

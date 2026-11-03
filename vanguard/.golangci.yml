@@ -1,0 +1,19 @@
+# golangci-lint configuration — the engine fails closed, so should the lint.
+version: "2"
+
+linters:
+  default: standard
+  enable:
+    - errcheck
+    - govet
+    - staticcheck
+    - unused
+  settings:
+    staticcheck:
+      checks:
+        - all
+        - -ST1000 # package comments are enforced by review, not lint
+
+formatters:
+  enable:
+    - gofmt

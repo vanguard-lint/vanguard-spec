@@ -207,7 +207,7 @@ func TestObserveRefusesDirtyScope(t *testing.T) {
 	_ = root
 	wf(t, filepath.Join(root, "src", "payments"), "x.go", "package x\n") // untracked churn
 	// rewrite cleanly
-	os.Remove(filepath.Join(root, "src", "payments", "x.go"))
+	os.Remove(filepath.Join(root, "src", "payments", "x.go")) //nolint:errcheck // best-effort cleanup in a test
 	wf(t, root, "src/payments/api.go", "package payments // edited\n")
 
 	e := load(t, store)

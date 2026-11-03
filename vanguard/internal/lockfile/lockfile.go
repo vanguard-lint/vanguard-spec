@@ -248,19 +248,27 @@ func writeJSONString(buf *bytes.Buffer, s string) {
 	buf.Write(enc)
 }
 
-// Save writes the lock only when the on-disk bytes still equal captured —
-// the compare-and-swap that keeps concurrent observes from trampling each
-// other — via an atomic temp-file rename.
+// Save writes the lock via an atomic temp-file rename. When captured is nil
+// the lockfile must still be absent (the first observe creates it);
+// otherwise the on-disk bytes must equal captured — the compare-and-swap
+// that keeps concurrent observes from trampling each other.
 func Save(path string, lock *Lock, captured []byte) error {
 	current, err := os.ReadFile(path)
 	if err != nil {
+		if os.IsNotExist(err) && captured == nil {
+			return atomicWrite(path, Serialize(lock))
+		}
 		return fmt.Errorf("lock changed during observe — re-run: %w", err)
 	}
 	if !bytes.Equal(current, captured) {
 		return fmt.Errorf("lock changed during observe — re-run")
 	}
-	tmp := path + ".tmp-" + shortHash(current)
-	if err := os.WriteFile(tmp, Serialize(lock), 0o644); err != nil {
+	return atomicWrite(path, Serialize(lock))
+}
+
+func atomicWrite(path string, data []byte) error {
+	tmp := path + ".tmp-" + shortHash(data)
+	if err := os.WriteFile(tmp, data, 0o644); err != nil {
 		return err
 	}
 	return os.Rename(tmp, path)

@@ -43,7 +43,7 @@ func TestCanonicalForm(t *testing.T) {
 	observed := strings.Index(entry, "\"observed_at\"")
 	scope := strings.Index(entry, "\"scope_tree_hash\"")
 	content := strings.Index(entry, "\"content_hash\"")
-	if !(anchor < observed && observed < scope && scope < content) {
+	if anchor >= observed || observed >= scope || scope >= content {
 		t.Fatal("field order must be fixed: anchor, observed_at, scope_tree_hash, content_hash")
 	}
 	// byte-stable across serializations

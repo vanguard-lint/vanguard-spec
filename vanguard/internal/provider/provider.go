@@ -61,13 +61,12 @@ type GitProvider struct {
 	repo     *git.Repository
 }
 
-// OpenGit opens the repository at root (following .git files for linked
-// worktrees). It returns an error when root holds no git repository — the
-// caller falls back to the HashProvider.
+// OpenGit opens the repository rooted exactly at root (no upward detection:
+// a parent's unrelated repository must never serve as the target). It
+// returns an error when root holds no git repository — the caller falls
+// back to the HashProvider.
 func OpenGit(root, storeDir string) (*GitProvider, error) {
-	repo, err := git.PlainOpenWithOptions(root, &git.PlainOpenOptions{
-		DetectDotGit: true,
-	})
+	repo, err := git.PlainOpen(root)
 	if err != nil {
 		return nil, err
 	}
@@ -482,6 +481,59 @@ func (g *GitProvider) ChangedPathsBetween(from, to string) ([]string, error) {
 	return paths, err
 }
 
+// Snapshot enumerates the HEAD tree files matching the globs, mapping each
+// path to its blob SHA — the git-mode content identity. Used for the scope
+// file count at observe time.
+func (g *GitProvider) Snapshot(globs []string) (map[string]string, error) {
+	tree, err := g.headTree()
+	if err != nil {
+		return nil, err
+	}
+	entries, err := walkAll(tree, "", g.storeDir)
+	if err != nil {
+		return nil, err
+	}
+	out := map[string]string{}
+	for _, e := range entries {
+		for _, glob := range globs {
+			if pathmatch.Match(glob, e.Path) {
+				out[e.Path] = e.Hash
+				break
+			}
+		}
+	}
+	return out, nil
+}
+
+// walkAll lists every blob entry under the tree, store paths filtered.
+func walkAll(t *object.Tree, prefix, storeDir string) ([]scope.Entry, error) {
+	if storeDir != "" && (prefix == storeDir || strings.HasPrefix(prefix, storeDir+"/")) {
+		return nil, nil
+	}
+	var out []scope.Entry
+	for i := 0; i < len(t.Entries); i++ {
+		e := &t.Entries[i]
+		path := e.Name
+		if prefix != "" {
+			path = prefix + "/" + e.Name
+		}
+		if e.Mode == filemode.Dir {
+			sub, err := t.Tree(e.Name)
+			if err != nil {
+				return nil, err
+			}
+			rest, err := walkAll(sub, path, storeDir)
+			if err != nil {
+				return nil, err
+			}
+			out = append(out, rest...)
+			continue
+		}
+		out = append(out, scope.Entry{Path: path, Mode: fmt.Sprintf("%o", e.Mode), Hash: e.Hash.String()})
+	}
+	return out, nil
+}
+
 // HashProvider serves a plain directory: content hashing, scope_snapshot,
 // no attribution, no dirty concept.
 type HashProvider struct {
@@ -572,7 +624,7 @@ func fileSum(path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	h := hashnorm.New()
 	if _, err := io.Copy(h, f); err != nil {
 		return "", err

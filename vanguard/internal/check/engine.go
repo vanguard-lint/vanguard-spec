@@ -120,15 +120,6 @@ func docByID(docs []docmodel.Doc, id string) *docmodel.Doc {
 	return nil
 }
 
-func sortedIDs(m map[string]lockfile.Entry) []string {
-	out := make([]string, 0, len(m))
-	for id := range m {
-		out = append(out, id)
-	}
-	sortStrings(out)
-	return out
-}
-
 func sortStrings(s []string) {
 	for i := 1; i < len(s); i++ {
 		for j := i; j > 0 && s[j] < s[j-1]; j-- {
