@@ -21,14 +21,17 @@ the design canon stays authoritative.
   [scope](engine/scope.md), [duration](engine/duration.md),
   [config](engine/config.md), [docmodel](engine/docmodel.md),
   [lockfile](engine/lockfile.md), [provider](engine/provider.md),
-  [check](engine/check-engine.md), and the [command
-  surface](engine/command-surface.md).
+  [structure](engine/structure.md), [check](engine/check-engine.md), and the
+  [command surface](engine/command-surface.md).
 - `.vanguard/schemas/` holds the binding contracts: `document.schema.json`
   (the engine fields of every store document), `package-contract.schema.json`
   (structure of the engine/ contracts), `envelope-v1.schema.json` (the output
-  envelope), and `criteria-tree.schema.json` (the quality criteria tree).
-- The quality artifacts live under `quality/`: the criteria tree plus the
-  quality plan itself ([quality-plan](quality-plan.md)); the rollout plan is
+  envelope), `criteria-tree.schema.json` (the quality criteria tree),
+  `quality-result.schema.json` (scorecard entries), and
+  `design-canon.schema.json` (the design mirror).
+- The quality artifacts live under `quality/`: the criteria tree and the
+  scorecard; the quality plan itself lives beside this document
+  ([quality-plan](quality-plan.md)); the rollout plan is
   [rollout-plan](rollout-plan.md).
 - `internal/hashnorm` — the normalization pipeline: binary detection on the
   first 8 KiB, BOM strip, CR fold, trailing-LF strip, streaming, no Unicode
@@ -37,8 +40,11 @@ the design canon stays authoritative.
   normalization, classification into subtree, enumerated, and repository-wide
   strategies, the segment matcher, and the check --path decision procedure
   with all eleven mandatory vectors.
-- `internal/scope` — the scope-hash formulas: the sorted entry-list hash, the
+- `internal/scope` - the scope-hash formulas: the sorted entry-list hash, the
   multi-glob combination, and the store-exclusion filters.
+- `internal/structure` - declared-schema enforcement: required sections,
+  order, duplicates, citation-pattern bullets, and format mismatch, wired
+  fail-closed at load [engine.go].
 - `internal/duration` — the review_after grammar (h, d, w, mo, y; a bare
   integer means days) plus Go-duration tunables.
 - `internal/config` — strict vanguard.yaml loading: unknown keys, anchors,
@@ -66,6 +72,8 @@ the design canon stays authoritative.
 
 ## Not yet implemented
 
-Provisioning (install), the markdown structure rule vocabulary, the json
-schema enforcement layer, and the full anchor-recovery surface are later
-milestones of the plan; this document updates as they land.
+Provisioning (install), goldmark-AST structure rules, JSON Schema 2020-12
+enforcement for json/yaml documents, and the full anchor-recovery surface
+are later milestones of the plan; the x-vanguard markdown structure rules
+(required sections, order, duplicates, citation patterns) are implemented
+today and enforced fail-closed at load. This document updates as they land.
