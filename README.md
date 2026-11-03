@@ -5,6 +5,14 @@
   </picture>
 </p>
 
+<p align="center">
+  <a href="https://vanguard-lint.github.io/vanguard-spec/"><strong>WEBSITE</strong></a>
+  ·
+  <a href="https://github.com/vanguard-lint/vanguard-spec#readme">README</a>
+  ·
+  <a href="https://github.com/vanguard-lint/vanguard-spec/blob/main/docs/designs/vanguard.md">DESIGN</a>
+</p>
+
 <br>
 
 Vanguard is a standalone command-line tool that keeps specification documents honest. It manages a project's spec documents (markdown, JSON, YAML, and DSL dialects such as C4), verifies that each document follows the structure its owner declared, and answers one question deterministically:
