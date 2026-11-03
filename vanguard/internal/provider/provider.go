@@ -5,9 +5,11 @@
 package provider
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -215,10 +217,7 @@ func (g *GitProvider) Dirty(globs []string) ([]string, error) {
 		return nil, err
 	}
 	var out []string
-	for path, s := range status {
-		if s.Staging == git.Unmodified && s.Worktree == git.Unmodified {
-			continue
-		}
+	for path := range status {
 		if g.storeDir != "" && (path == g.storeDir || strings.HasPrefix(path, g.storeDir+"/")) {
 			continue // vanguard's own bookkeeping is never churn
 		}
@@ -233,7 +232,77 @@ func (g *GitProvider) Dirty(globs []string) ([]string, error) {
 	return out, nil
 }
 
-func (g *GitProvider) worktreeStatus() (git.Status, error) {
+// worktreeStatus classifies every non-clean worktree path. The authoritative
+// source is the real git CLI (`git status --porcelain`): go-git's own status
+// hashes raw worktree bytes against the index and reports phantom churn when
+// core.autocrlf renormalizes line endings — a false positive the loud-only
+// error budget does not cover (permanent phantom-dirty makes observe
+// unusable). When the git binary is unavailable the go-git status serves as
+// the fallback, phantom risk accepted and documented.
+func (g *GitProvider) worktreeStatus() (map[string]string, error) {
+	paths, err := g.porcelainStatus()
+	if err == nil {
+		return paths, nil
+	}
+	status, err := g.goGitStatus()
+	if err != nil {
+		return nil, err
+	}
+	out := map[string]string{}
+	for path, s := range status {
+		if s.Staging == git.Unmodified && s.Worktree == git.Unmodified {
+			continue
+		}
+		if s.Worktree == git.Untracked || s.Staging == git.Untracked {
+			out[path] = "untracked"
+			continue
+		}
+		out[path] = "modified"
+	}
+	return out, nil
+}
+
+// porcelainStatus runs `git status --porcelain -z --untracked-files=all` and
+// maps every non-clean path to its classification.
+func (g *GitProvider) porcelainStatus() (map[string]string, error) {
+	gitBin, err := exec.LookPath("git")
+	if err != nil {
+		return nil, fmt.Errorf("git binary not found: %w", err)
+	}
+	cmd := exec.Command(gitBin, "-C", g.root, "status", "--porcelain", "-z",
+		"--untracked-files=all")
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("git status failed: %w", err)
+	}
+	statuses := map[string]string{}
+	records := bytes.Split(out, []byte{0})
+	for i := 0; i < len(records)-1; i++ {
+		rec := records[i]
+		if len(rec) < 4 {
+			continue // "XY path"
+		}
+		x, y := rec[0], rec[1]
+		if x == '?' && y == '?' {
+			statuses[string(rec[3:])] = "untracked"
+			continue
+		}
+		if x == '!' && y == '!' {
+			continue // ignored files never appear anyway
+		}
+		// Rename records carry "to\0from"; both refer to churn.
+		statuses[string(rec[3:])] = "modified"
+		if x == 'R' || y == 'R' || x == 'C' || y == 'C' {
+			if i+1 < len(records)-1 {
+				statuses[string(records[i+1])] = "modified"
+			}
+			i++
+		}
+	}
+	return statuses, nil
+}
+
+func (g *GitProvider) goGitStatus() (git.Status, error) {
 	w, err := g.repo.Worktree()
 	if err != nil {
 		return git.Status{}, err
@@ -247,14 +316,10 @@ func (g *GitProvider) FileStatus(rel string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	s, ok := status[rel]
-	if !ok || (s.Staging == git.Unmodified && s.Worktree == git.Unmodified) {
-		return "clean", nil
+	if s, ok := status[rel]; ok {
+		return s, nil
 	}
-	if s.Worktree == git.Untracked || s.Staging == git.Untracked {
-		return "untracked", nil
-	}
-	return "modified", nil
+	return "clean", nil
 }
 
 // AnchorReachable walks all parents from HEAD (visited set; the walk is the
