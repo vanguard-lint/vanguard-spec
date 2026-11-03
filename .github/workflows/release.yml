@@ -36,9 +36,14 @@ jobs:
           done
           cd ../dist
           for f in vanguard-*; do sha256sum "$f" > "$f.sha256"; done
+      - name: Extract the tag annotation as release notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git tag -l "${GITHUB_REF_NAME}" --format='%(contents)' > ../release_notes.md
       - name: Publish the GitHub release
         uses: softprops/action-gh-release@v2
         with:
           files: |
             dist/*
-          body: "See the tag annotation and the commit history for release notes."
+          body_path: release_notes.md
