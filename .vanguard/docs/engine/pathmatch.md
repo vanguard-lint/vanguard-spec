@@ -36,8 +36,12 @@ whole-segments-only; dotfiles match like any file.
 
 - Closed grammar: `*`, `**`, `?`, classes, one brace level, backslash
   escapes; negation with `!`, fused `**`, nested braces, empty alternatives,
-  and unterminated constructs are fatal [pathmatch.go:validate].
-- Class negation must use `^`; `[!` is rejected and `[]` never matches
+  and unterminated constructs are fatal — negation and the trailing lone
+  backslash are rejected in `Canonical`
+  [pathmatch.go:Canonical], brace errors in `expandBraces` and
+  `closingBrace` [pathmatch.go:expandBraces].
+- Class negation must use `^`; `[!` is rejected in `validate`
+  [pathmatch.go:validate] and `[]` never matches
   [pathmatch.go:classEnd].
 - Equivalent spellings classify identically, so they hash the same scope
   [pathmatch.go:Classify].
