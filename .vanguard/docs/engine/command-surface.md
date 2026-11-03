@@ -36,12 +36,15 @@ this package is wiring only.
   [main.go:checkCmd, main.go:observeCmd].
 - `--strict` combined with `--from`/`--to` is a usage error
   [main.go:checkCmd].
-- `--max-recovery-walk` (default 1000) wires into the engine's
-  `Options.MaxRecoveryWalk` [main.go:checkCmd].
+- `--max-recovery-walk` (default 1000) is parsed into the engine's
+  `Options.MaxRecoveryWalk` [main.go:checkCmd] but is currently inert: the
+  effective bound comes from `Selection.MaxRecoveryWalk`, which the CLI
+  never sets, so the engine fallback of 1000 always applies.
 - `--fail-on-affected` sets exit bit 32 when affected_in_range is non-empty
   (range mode only) [main.go:checkCmd].
 - `--run-bindings` executes the allowlisted bindings for documents in scope;
-  refused in range mode [main.go:checkCmd].
+  in range mode the flag is silently ignored — no error, no exit bit, no
+  hint [main.go:checkCmd].
 - Bare `observe` (no id, no `--all`, no `--prune`) is refused by the engine
   as a usage error [main.go:observeCmd].
 - `findStore` walks upward to the filesystem root and errors with "run
