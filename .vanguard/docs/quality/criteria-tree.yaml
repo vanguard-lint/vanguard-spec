@@ -1,0 +1,597 @@
+# Vanguard quality criteria tree — epistemic quality decomposition (L0 -> L4).
+# Exported from .vanguard/docs/quality-plan.md (sections 2-4) plus the
+# lock-integrity branch of docs/designs/lock-integrity-section.en.md (mapped as
+# the L2.2.d children). Bound by .vanguard/schemas/criteria-tree.schema.json.
+# Status of every node is DRAFT until an adversarial round freezes it (G4: this
+# file plus the round log are where Decomposer/Attacker/Referee results live).
+schema_version: 1
+source: "docs/designs/vanguard-quality-plan.en.md"
+nodes:
+  # ---------------------------------------------------------------- L0
+  - node_id: L0_VANGUARD_INVARIANT
+    level: 0
+    statement: >
+      For every spec document, the status Vanguard reports (fresh, stale, dirty,
+      unobserved) is a deterministic and correct function of {vanguard.lock, the
+      git tree, the worktree}. Vanguard never reports fresh when the code scope
+      or the document itself has changed without being attested.
+    justification:
+      sufficiency: >-
+        Counter-factual test passed: a false-fresh hour means agents code against
+        a wrong spec — exactly the silent drift the project exists to prevent.
+      necessity: >-
+        The value invariant is the reason the tool exists; removing it removes
+        the product.
+    status: DRAFT
+    verification_protocol:
+      method: "Counter-factual Test"
+      attacker_rounds_passed: 0
+      referee_verdict: PENDING
+    children: [L1.1_SEMANTIC_CORRECTNESS, L1.2_STATE_INTEGRITY, L1.3_OPERATIONAL_TIMELINESS, L1.4_AUDITABILITY, L1.5_EXECUTION_CONTAINMENT]
+
+  # ---------------------------------------------------------------- L1
+  - node_id: L1.1_SEMANTIC_CORRECTNESS
+    level: 1
+    parent_id: L0_VANGUARD_INVARIANT
+    statement: >-
+      Status, attribution and structure-verification results are correct. Errors
+      are allowed only in the loud direction.
+    justification:
+      sufficiency: "Wrong status is the direct violation of L0."
+      necessity: "Every other pillar exists to keep this one true under stress."
+    status: DRAFT
+    verification_protocol:
+      method: "Sufficiency/Necessity Check"
+      attacker_rounds_passed: 0
+      referee_verdict: PENDING
+    children: [L2.1.a_SCOPE_HASH, L2.1.b_ANCHOR_RESOLUTION, L2.1.c_DIRTY_DETECTION, L2.1.d_DOCUMENT_AND_CLOCK_AXES, L2.1.e_PATH_LOOKUP_AND_ATTRIBUTION, L2.1.f_STRUCTURE_VERIFICATION]
+
+  - node_id: L1.2_STATE_INTEGRITY
+    level: 1
+    parent_id: L0_VANGUARD_INVARIANT
+    statement: >-
+      vanguard.lock, store configuration and every hash are not distorted, do
+      not lose updates, cannot be silently tampered with, and are identical on
+      every machine.
+    justification:
+      sufficiency: "A distorted lock or config directly produces a wrong status (L1.1)."
+      necessity: "The lock is the sole carrier of attestations; without integrity there is no evidence."
+    status: DRAFT
+    verification_protocol:
+      method: "Sufficiency/Necessity Check"
+      attacker_rounds_passed: 0
+      referee_verdict: PENDING
+    children: [L2.2.a_LOCK_WRITE_RACES, L2.2.b_SERIALIZATION_PORTABILITY, L2.2.c_LOST_OR_CORRUPT_LOCK, L2.2.d_LOCK_HAND_EDIT_OR_FORGERY, L2.2.e_ENTRY_SHAPE_AND_VERSION, L2.2.f_STORE_CONFIG_TAMPERING]
+
+  - node_id: L1.3_OPERATIONAL_TIMELINESS
+    level: 1
+    parent_id: L0_VANGUARD_INVARIANT
+    statement: >-
+      check/observe run offline, deterministically, fast enough, and work
+      immediately on a fresh clone or CI.
+    justification:
+      sufficiency: "A tool that cannot run in CI cannot guard CI."
+      necessity: "Offline + deterministic are non-goals NG3/NG4 of the design canon."
+    status: DRAFT
+    verification_protocol:
+      method: "Sufficiency/Necessity Check"
+      attacker_rounds_passed: 0
+      referee_verdict: PENDING
+    children: [L2.3.a_CONTAINMENT_LEAK_INTO_HOT_PATH, L2.3.b_PERFORMANCE_BUDGET, L2.3.c_NON_DETERMINISM, L2.3.d_FRESH_CLONE_AND_CI]
+
+  - node_id: L1.4_AUDITABILITY
+    level: 1
+    parent_id: L0_VANGUARD_INVARIANT
+    statement: >-
+      Every attestation is visible in git history; every error says what, where,
+      and which command next; the envelope is stable for agents.
+    justification:
+      sufficiency: "Unactionable failures make the loud direction useless."
+      necessity: "The envelope is a versioned contract consumed by machines."
+    status: DRAFT
+    verification_protocol:
+      method: "Sufficiency/Necessity Check"
+      attacker_rounds_passed: 0
+      referee_verdict: PENDING
+    children: [L2.4.a_ATTESTATION_VISIBILITY, L2.4.b_ACTIONABILITY, L2.4.c_ENVELOPE_AND_EXIT_BITS, L2.4.d_OBSERVE_ABUSE]
+
+  - node_id: L1.5_EXECUTION_CONTAINMENT
+    level: 1
+    parent_id: L0_VANGUARD_INVARIANT
+    statement: >-
+      Only --run-bindings and install may run processes or open the network;
+      binding results never become staleness.
+    justification:
+      sufficiency: "A binding failure mixed into stale breaks L1.1 directly; executing processes breaks L1.3 (offline)."
+      necessity: "Documents are untrusted input; arbitrary execution through them is the worst-case failure."
+    status: DRAFT
+    verification_protocol:
+      method: "Sufficiency/Necessity Check (attack pre-registered: is this a pillar or a safety property?)"
+      attacker_rounds_passed: 0
+      referee_verdict: PENDING
+    children: [L2.5.a_BINDING_RESULTS_LEAK, L2.5.b_ARBITRARY_EXECUTION, L2.5.c_BINARY_SUPPLY_CHAIN, L2.5.d_WRITES_OUTSIDE_BOUNDARY]
+
+  # ---------------------------------------------------------------- L1.1
+  - node_id: L2.1.a_SCOPE_HASH
+    level: 2
+    parent_id: L1.1_SEMANTIC_CORRECTNESS
+    dimension: "Failure mechanism — wrong scope hash"
+    statement: "The scope hash fails to distinguish trees that differ, or distinguishes trees that are equal."
+    justification:
+      sufficiency: "Same net-state => same status; the hash is the net-state input."
+      necessity: "Every watch path relies on the hash formula."
+    contexts: ["N: dir/** subtree OID, filtered enumeration glob, repository-wide level-1", "E: rename, exec-bit change, symlink retarget, submodule bump (gitlink), brace expansion, consecutive **, scope empty at check time", "Ad: object-format=sha256 repo, shallow clone, non-ASCII/non-UTF-8 path", "Adv: overlapping globs hiding churn; changing a glob's form to change the hash formula"]
+    status: DRAFT
+    verification_protocol:
+      method: "Orthogonality Check"
+      attacker_rounds_passed: 0
+      referee_verdict: PENDING
+    children: [L4.1.1.a-1, L4.1.1.a-2, L4.1.1.a-3]
+
+  - node_id: L2.1.b_ANCHOR_RESOLUTION
+    level: 2
+    parent_id: L1.1_SEMANTIC_CORRECTNESS
+    dimension: "Failure mechanism — history rewrite"
+    statement: "An orphaned or history-shifted anchor makes the status differ between resolution paths."
+    justification:
+      sufficiency: "Same net-state => same status on the fast, recovery, and fallback paths."
+      necessity: "Squash-merge is the common case; without the recovery branch, status is wrong right after every squash."
+    contexts: ["N: anchor is an ancestor of HEAD (fast path)", "E: A->B->A (scope changed then reverted)", "Ad: squash-merge orphaned anchor, rebase, cherry-pick, shallow clone, walk exceeding the 1000 bound", "Adv: anchor present in the ODB but not an ancestor"]
+    status: DRAFT
+    verification_protocol:
+      method: "Orthogonality Check"
+      attacker_rounds_passed: 0
+      referee_verdict: PENDING
+    children: [L4.1.1.b-1, L4.1.1.b-2, L4.1.1.b-3]
+
+  - node_id: L2.1.c_DIRTY_DETECTION
+    level: 2
+    parent_id: L1.1_SEMANTIC_CORRECTNESS
+    dimension: "Failure mechanism — worktree churn misread"
+    statement: "Dirty detection reports phantom-fresh (missed churn) or unexplained phantom-dirty."
+    justification:
+      sufficiency: "The worktree half of the net-state triple."
+      necessity: "CRLF/autocrlf environments make naive comparisons wrong on every Windows clone."
+    contexts: ["N: edited file in scope, untracked file, gitignored file", "E: CRLF/LF with autocrlf in {true,false,input}, .gitattributes (text, eol, LFS), mode-only change with core.filemode=false", "Ad: blobless clone missing a blob, sparse-checkout, assume-unchanged/skip-worktree, racy-git", "Adv: edit a file then restore its mtime/stat to the old value"]
+    status: DRAFT
+    verification_protocol:
+      method: "Orthogonality Check"
+      attacker_rounds_passed: 0
+      referee_verdict: PENDING
+    children: [L4.1.1.c-1, L4.1.1.c-2, L4.1.1.c-3]
+
+  - node_id: L2.1.d_DOCUMENT_AND_CLOCK_AXES
+    level: 2
+    parent_id: L1.1_SEMANTIC_CORRECTNESS
+    dimension: "Failure mechanism — document and clock staleness missed"
+    statement: "Document edits or review_after expiry do not raise the stale signal, or raise it spuriously."
+    justification:
+      sufficiency: "Document-changed and review_after are two of the staleness axes."
+      necessity: "Narrowing watches or editing an unwatched document are the cheapest ways to fake freshness."
+    contexts: ["N: edit content after observe => document_changed", "E: edit frontmatter to narrow watches.paths; edit an observed unwatched document", "Ad: BOM/line-ending/final-newline changes must not count as churn; streamed-hash chunk boundaries", "Adv: hand-edit observed_at; review_after with a skewed clock"]
+    status: DRAFT
+    verification_protocol:
+      method: "Orthogonality Check"
+      attacker_rounds_passed: 0
+      referee_verdict: PENDING
+    children: [L4.1.1.d-1, L4.1.1.d-2, L4.1.1.d-3]
+
+  - node_id: L2.1.e_PATH_LOOKUP_AND_ATTRIBUTION
+    level: 2
+    parent_id: L1.1_SEMANTIC_CORRECTNESS
+    dimension: "Failure mechanism — wrong reverse lookup or attribution"
+    statement: "check --path picks the wrong documents, or range attribution names the wrong commits."
+    justification:
+      sufficiency: "The decide() procedure and the attribution walk are the only reverse mappings."
+      necessity: "Wrong attribution sends the reviewer to the wrong commit."
+    contexts: ["N: file vs directory, literal glob", "E: mid-glob **, empty directory, src/*.go vs src/a/b, review_after-only document", "Ad: absolute path outside the target root, ..", "Adv: a valid glob crafted so decide() does not terminate"]
+    status: DRAFT
+    verification_protocol:
+      method: "Orthogonality Check"
+      attacker_rounds_passed: 0
+      referee_verdict: PENDING
+    children: [L4.1.1.e-1, L4.1.1.e-2, L4.1.1.e-3]
+
+  - node_id: L2.1.f_STRUCTURE_VERIFICATION
+    level: 2
+    parent_id: L1.1_SEMANTIC_CORRECTNESS
+    dimension: "Failure mechanism — structure rules false-pass or false-fail"
+    statement: "Structure verification accepts invalid documents or rejects valid ones."
+    justification:
+      sufficiency: "Structure results are part of the reported status (L1.1)."
+      necessity: "Parser DoS and case-variant duplicate ids are realistic agent-authored inputs."
+    contexts: ["N: document conforming to its schema", "E: duplicate frontmatter keys, YAML anchors/aliases, missing schema, id grammar/case-variant duplicates", "Ad: frontmatter > 256 KiB, max_depth > 32, DSL without a leading comment block", "Adv: additionalProperties:false with engine fields; relative link escaping the repository"]
+    status: DRAFT
+    verification_protocol:
+      method: "Orthogonality Check"
+      attacker_rounds_passed: 0
+      referee_verdict: PENDING
+    children: [L4.1.1.f-1, L4.1.1.f-2, L4.1.1.f-3, L4.1.1.f-4]
+
+  # ---------------------------------------------------------------- L1.2
+  - node_id: L2.2.a_LOCK_WRITE_RACES
+    level: 2
+    parent_id: L1.2_STATE_INTEGRITY
+    dimension: "Failure mechanism — lost update on lock write"
+    statement: "Concurrent or killed observe runs lose attestations or corrupt the lock."
+    justification:
+      sufficiency: "The lock is the only writable state; losing an update loses evidence."
+      necessity: "Agents run observe in parallel routinely."
+    contexts: ["N: a single observe", "E: two observes on different documents in parallel", "Ad: process killed midway (temp + rename)", "Adv: two observes on the same document"]
+    status: DRAFT
+    verification_protocol:
+      method: "Orthogonality Check"
+      attacker_rounds_passed: 0
+      referee_verdict: PENDING
+    children: [L4.2.2.a-1, L4.2.2.a-2, L4.2.2.a-3]
+
+  - node_id: L2.2.b_SERIALIZATION_PORTABILITY
+    level: 2
+    parent_id: L1.2_STATE_INTEGRITY
+    dimension: "Failure mechanism — non-portable serialization or hashes"
+    statement: "The lock or a hash differs across machines, branches, or merge orders."
+    justification:
+      sufficiency: "Identical on every machine is stated in L1.2."
+      necessity: "Team members on Windows and Linux merge lock changes daily."
+    contexts: ["N: round-trip", "E: merge two branches that observed different documents", "Ad: Windows autocrlf, NFC/NFD, UTF-16 hashed raw", "Adv: two branches observing the same document"]
+    status: DRAFT
+    verification_protocol:
+      method: "Orthogonality Check"
+      attacker_rounds_passed: 0
+      referee_verdict: PENDING
+    children: [L4.2.2.b-1, L4.2.2.b-2, L4.2.2.b-3]
+
+  - node_id: L2.2.c_LOST_OR_CORRUPT_LOCK
+    level: 2
+    parent_id: L1.2_STATE_INTEGRITY
+    dimension: "Failure mechanism — lost, corrupt, or emptied lock undetected"
+    statement: "A missing, truncated, or emptied lock is not reported loudly (with the emptied case as an accepted false-negative under --strict)."
+    justification:
+      sufficiency: "Without the lock there is no attestation; loud degradation is the design contract."
+      necessity: "A fresh clone without the lock must not report green."
+    contexts: ["N: valid bootstrap (init, nothing observed) is not reported as lost-lock", "E: valid lock with some documents not yet observed", "Ad: deleted lock, truncated JSON lock, unknown version major", "Adv: lock emptied to {\"docs\":{}} — accepted false-negative"]
+    status: DRAFT
+    verification_protocol:
+      method: "Orthogonality Check (attack pre-registered: can 2.2.c and 2.2.d merge?)"
+      attacker_rounds_passed: 0
+      referee_verdict: PENDING
+    children: [L4.2.2.c-1, L4.2.2.c-2, L4.2.2.c-3, L4.2.2.c-4]
+
+  - node_id: L2.2.d_LOCK_HAND_EDIT_OR_FORGERY
+    level: 2
+    parent_id: L1.2_STATE_INTEGRITY
+    dimension: "Failure mechanism — lock hand-edited or forged (needs ratification: lock-integrity-section.en.md)"
+    statement: "Hand-edits and hash forgeries are detected, located, and paired with the command that fixes them; consistent forgery is a stated limit."
+    justification:
+      sufficiency: "Every divergence between the lock and git truth is exposed; the residue is Risk Register R1."
+      necessity: "observe is the only lock writer, but nothing today stops an editor."
+    contexts: ["N: lock written by observe, clean commit", "E: hand-edit breaking format (id order, indent, CRLF), missing fields, anchor mixed with scope_snapshot", "Ad: shallow clone missing lock history, HashProvider (no history), merge conflict resolved wrongly", "Adv: forge scope_tree_hash/content_hash/anchor field by field; consistent forgery of every hash; delete an entry to turn stale into unobserved"]
+    status: DRAFT
+    verification_protocol:
+      method: "Orthogonality Check (attack pre-registered: distinct from 2.2.f config tampering?)"
+      attacker_rounds_passed: 0
+      referee_verdict: PENDING
+    children: [L4.2.2.d-1, L4.2.2.d-2, L4.2.2.d-3, L4.2.2.d-4, L4.2.2.d-5, L4.2.2.d-6]
+
+  - node_id: L2.2.e_ENTRY_SHAPE_AND_VERSION
+    level: 2
+    parent_id: L1.2_STATE_INTEGRITY
+    dimension: "Failure mechanism — entry shape, mode, or version mismatch"
+    statement: "Entries of an unexpected shape or version degrade to unobserved with a hint instead of an internal error, and unknown fields survive."
+    justification:
+      sufficiency: "Forward compatibility is the lockfile contract."
+      necessity: "Mode changes (.git added/removed) happen when stores move between machines."
+    contexts: ["N: the three valid shapes (git, HashProvider, review_after-only)", "E: unknown field — preserved, not dropped", "Ad: target mode changes, object-format changes, unknown version major", "Adv: tree:/sha256: prefixes swapped"]
+    status: DRAFT
+    verification_protocol:
+      method: "Orthogonality Check"
+      attacker_rounds_passed: 0
+      referee_verdict: PENDING
+    children: [L4.2.2.e-1, L4.2.2.e-2]
+
+  - node_id: L2.2.f_STORE_CONFIG_TAMPERING
+    level: 2
+    parent_id: L1.2_STATE_INTEGRITY
+    dimension: "Failure mechanism — store configuration tampered with"
+    statement: "vanguard.yaml and schemas/ cannot silently loosen the game's rules, and config changes vs a base ref are visible."
+    justification:
+      sufficiency: "Config defines what counts as evidence; loosening it invalidates every attestation."
+      necessity: "The bindings allowlist and clock_skew_tolerance are attack surfaces."
+    contexts: ["N: valid configuration", "E: missing version, YAML anchors, duplicate keys", "Ad: store relocated inside a watch scope (self-referential cycle)", "Adv: loosen clock_skew_tolerance, add a command to the allowlist, loosen a schema"]
+    status: DRAFT
+    verification_protocol:
+      method: "Orthogonality Check (attack pre-registered: distinct from 2.2.d?)"
+      attacker_rounds_passed: 0
+      referee_verdict: PENDING
+    children: [L4.2.2.f-1, L4.2.2.f-2, L4.2.2.f-3]
+
+  # ---------------------------------------------------------------- L1.3
+  - node_id: L2.3.a_CONTAINMENT_LEAK_INTO_HOT_PATH
+    level: 2
+    parent_id: L1.3_OPERATIONAL_TIMELINESS
+    dimension: "Failure mechanism — network or processes in the hot path"
+    statement: "check/observe never open sockets or spawn processes unless --run-bindings is given."
+    justification:
+      sufficiency: "Offline determinism is a stated non-goal boundary (NG3/NG4)."
+      necessity: "Documents and configs are untrusted inputs; the hot path must not execute them."
+    contexts: ["N: ordinary check, observe", "E: --path, --from/--to", "Ad: blobless clone missing a blob — must not fetch", "Adv: a document or glob trying to trigger execution"]
+    status: DRAFT
+    verification_protocol:
+      method: "Orthogonality Check"
+      attacker_rounds_passed: 0
+      referee_verdict: PENDING
+    children: [L4.2.3.a-1, L4.2.3.a-2]
+
+  - node_id: L2.3.b_PERFORMANCE_BUDGET
+    level: 2
+    parent_id: L1.3_OPERATIONAL_TIMELINESS
+    dimension: "Failure mechanism — performance budget exceeded"
+    statement: "Dirty detection, recovery walks, and hostile globs stay within bounded time."
+    justification:
+      sufficiency: "Fast enough for CI gates is part of the pillar."
+      necessity: "Recovery walk is O(walk x matches); hostile globs are realistic from agents."
+    contexts: ["N: 2000-file scope", "E: many arbitrary globs, large scope (monorepo)", "Ad: 1000-commit recovery walk with a filtered glob", "Adv: globs crafted to blow up (braces, **)"]
+    status: DRAFT
+    verification_protocol:
+      method: "Orthogonality Check"
+      attacker_rounds_passed: 0
+      referee_verdict: PENDING
+    children: [L4.2.3.b-1, L4.2.3.b-2, L4.2.3.b-3]
+
+  - node_id: L2.3.c_NON_DETERMINISM
+    level: 2
+    parent_id: L1.3_OPERATIONAL_TIMELINESS
+    dimension: "Failure mechanism — non-determinism"
+    statement: "Two runs on the same store, repository, and --now produce byte-identical output."
+    justification:
+      sufficiency: "Deterministic status is in L0 itself."
+      necessity: "Agents diff envelope output across runs to detect drift."
+    contexts: ["N: run twice", "E: discovery order, store-level array order", "Ad: change OS, change GOMAXPROCS", "Adv: different --now across runs"]
+    status: DRAFT
+    verification_protocol:
+      method: "Orthogonality Check"
+      attacker_rounds_passed: 0
+      referee_verdict: PENDING
+    children: [L4.2.3.c-1, L4.2.3.c-2]
+
+  - node_id: L2.3.d_FRESH_CLONE_AND_CI
+    level: 2
+    parent_id: L1.3_OPERATIONAL_TIMELINESS
+    dimension: "Failure mechanism — fresh clone or CI not usable immediately"
+    statement: "Every clone kind (full, linked worktree, shallow, blobless, partial) yields a working check with loud degradation."
+    justification:
+      sufficiency: "CI checks out fresh clones on every run."
+      necessity: "Shallow clones are the CI default."
+    contexts: ["N: full clone", "E: linked worktree, .git as a file, submodule", "Ad: shallow, blobless, partial clone", "Adv: not applicable — security lives in 2.2.d"]
+    status: DRAFT
+    verification_protocol:
+      method: "Orthogonality Check"
+      attacker_rounds_passed: 0
+      referee_verdict: PENDING
+    children: [L4.2.3.d-1, L4.2.3.d-2]
+
+  # ---------------------------------------------------------------- L1.4
+  - node_id: L2.4.a_ATTESTATION_VISIBILITY
+    level: 2
+    parent_id: L1.4_AUDITABILITY
+    dimension: "Failure mechanism — attestation invisible or unverifiable"
+    statement: "Observe refuses in exactly the documented ways and never writes anything but the lock."
+    justification:
+      sufficiency: "Git history is the attestation record; the refusal table is the contract."
+      necessity: "Unborn HEAD, detached HEAD, and dirty scopes are everyday states."
+    contexts: ["N: observe on a committed document with a clean scope", "E: uncommitted document, decoupled store outside the repository", "Ad: unborn HEAD, detached HEAD, merge/rebase in progress", "Adv: observe with a dirty scope, --at in the future, --at going backwards"]
+    status: DRAFT
+    verification_protocol:
+      method: "Orthogonality Check"
+      attacker_rounds_passed: 0
+      referee_verdict: PENDING
+    children: [L4.2.4.a-1, L4.2.4.a-2]
+
+  - node_id: L2.4.b_ACTIONABILITY
+    level: 2
+    parent_id: L1.4_AUDITABILITY
+    dimension: "Failure mechanism — feedback that is not actionable"
+    statement: "Every error carries what, where, and the next command; hints are runnable."
+    justification:
+      sufficiency: "The loud direction is only useful if it tells the reader what to do."
+      necessity: "Agents parse hints[] and execute them."
+    contexts: ["N: violation, stale, unobserved", "E: anchor_orphaned/anchor_recovered, scope emptied 14 -> 0", "Ad: missing blob, shallow skipping a check", "Adv: not applicable"]
+    status: DRAFT
+    verification_protocol:
+      method: "Orthogonality Check"
+      attacker_rounds_passed: 0
+      referee_verdict: PENDING
+    children: [L4.2.4.b-1, L4.2.4.b-2]
+
+  - node_id: L2.4.c_ENVELOPE_AND_EXIT_BITS
+    level: 2
+    parent_id: L1.4_AUDITABILITY
+    dimension: "Failure mechanism — unstable envelope or exit bits"
+    statement: "The envelope is a stable schema-1 contract; exit bits compose; inapplicable flags are usage errors."
+    justification:
+      sufficiency: "The envelope is the machine interface; instability breaks every consumer."
+      necessity: "CI gates on individual bits (one condition per bit)."
+    contexts: ["N: each mode (all/doc/path/range/observe)", "E: bit combinations (2+4=6, 2+64=66)", "Ad: flags not applicable to the mode — usage error", "Adv: strings YAML misreads as other types (no, on, numeric OIDs)"]
+    status: DRAFT
+    verification_protocol:
+      method: "Orthogonality Check"
+      attacker_rounds_passed: 0
+      referee_verdict: PENDING
+    children: [L4.2.4.c-1, L4.2.4.c-2, L4.2.4.c-3]
+
+  - node_id: L2.4.d_OBSERVE_ABUSE
+    level: 2
+    parent_id: L1.4_AUDITABILITY
+    dimension: "Failure mechanism — attesting without review"
+    statement: "Bare observe and observe --all cannot be used to sweep staleness under the rug; deliberate abuse is a process limit (R2)."
+    justification:
+      sufficiency: "Machine-detectable abuse vectors are closed; the rest is the stated honest limit."
+      necessity: "observe without review is the candidate sixth pillar rejected at L1."
+    contexts: ["N: deliberate observe <id>", "E: bare observe (no id)", "Ad: --all hitting a partial failure", "Adv: an agent running observe <id> document by document"]
+    status: DRAFT
+    verification_protocol:
+      method: "Orthogonality Check"
+      attacker_rounds_passed: 0
+      referee_verdict: PENDING
+    children: [L4.2.4.d-1, L4.2.4.d-2, L4.2.4.d-3]
+
+  # ---------------------------------------------------------------- L1.5
+  - node_id: L2.5.a_BINDING_RESULTS_LEAK
+    level: 2
+    parent_id: L1.5_EXECUTION_CONTAINMENT
+    dimension: "Failure mechanism — binding results leak into staleness"
+    statement: "Binding pass/fail never changes the stale status; only bit 16 is affected, and flaky bindings get a re-run policy."
+    justification:
+      sufficiency: "Binding results are not attestations."
+      necessity: "Mixing them breaks L1.1 directly (pre-registered L1 necessity attack)."
+    contexts: ["N: binding pass/fail", "E: timeout, command not found", "Ad: flaky binding", "Adv: binding prints output that fakes a status"]
+    status: DRAFT
+    verification_protocol:
+      method: "Orthogonality Check"
+      attacker_rounds_passed: 0
+      referee_verdict: PENDING
+    children: [L4.2.5.a-1, L4.2.5.a-2, L4.2.5.a-3]
+
+  - node_id: L2.5.b_ARBITRARY_EXECUTION
+    level: 2
+    parent_id: L1.5_EXECUTION_CONTAINMENT
+    dimension: "Failure mechanism — arbitrary execution via documents or config"
+    statement: "Only allowlisted bindings run, always pure argv, never a shell."
+    justification:
+      sufficiency: "The allowlist plus argv-only exec closes the execution surface."
+      necessity: "Documents are agent-authored; shell metacharacters are the classic injection."
+    contexts: ["N: binding declared in the allowlist", "E: shorthand string with quotes", "Ad: not applicable", "Adv: raw command in frontmatter, shell metacharacters in cmd, fork PR editing the allowlist"]
+    status: DRAFT
+    verification_protocol:
+      method: "Orthogonality Check"
+      attacker_rounds_passed: 0
+      referee_verdict: PENDING
+    children: [L4.2.5.b-1, L4.2.5.b-2, L4.2.5.b-3]
+
+  - node_id: L2.5.c_BINARY_SUPPLY_CHAIN
+    level: 2
+    parent_id: L1.5_EXECUTION_CONTAINMENT
+    dimension: "Failure mechanism — binary supply chain"
+    statement: "install only lands checksum-verified binaries over HTTPS, and committed binaries are refused at execution time."
+    justification:
+      sufficiency: "sha256 + https + refusal covers download, transport, and swapping."
+      necessity: "install is the one network-and-download surface in the tool."
+    contexts: ["N: install with a correct url + sha256", "E: binary already committed in bin/", "Ad: download cut midway", "Adv: wrong sha256, plain HTTP, swapped binary"]
+    status: DRAFT
+    verification_protocol:
+      method: "Orthogonality Check"
+      attacker_rounds_passed: 0
+      referee_verdict: PENDING
+    children: [L4.2.5.c-1, L4.2.5.c-2, L4.2.5.c-3]
+
+  - node_id: L2.5.d_WRITES_OUTSIDE_BOUNDARY
+    level: 2
+    parent_id: L1.5_EXECUTION_CONTAINMENT
+    dimension: "Failure mechanism — writes or side effects outside the boundary"
+    statement: "check writes nothing, ever, including with --run-bindings."
+    justification:
+      sufficiency: "D7 (check never writes) is a design decision in the canon."
+      necessity: "An agent using check as a re-anchoring path would bypass observe's guards."
+    contexts: ["N: ordinary check", "E: check --run-bindings", "Ad: .vanguard/ is read-only", "Adv: agent uses check as a re-anchoring path"]
+    status: DRAFT
+    verification_protocol:
+      method: "Orthogonality Check"
+      attacker_rounds_passed: 0
+      referee_verdict: PENDING
+    children: [L4.2.5.d-1, L4.2.5.d-2]
+
+  # ---------------------------------------------------------------- L4 leaves
+  # L2.1.a
+  - {node_id: L4.1.1.a-1, level: 4, parent_id: L2.1.a_SCOPE_HASH, test_id: Q-1.1.a-1, metric: "cases where scope_tree_hash is unchanged although the (path, mode, blob) set changed", oracle: "fixture suite + independently computed git ls-tree", threshold: "= 0", status: LEAF}
+  - {node_id: L4.1.1.a-2, level: 4, parent_id: L2.1.a_SCOPE_HASH, test_id: Q-1.1.a-2, metric: "wrong scope-hash vectors (nested, overlap-not-deduped, rename re-key, single glob, tree:/sha256: prefix)", oracle: "hand-built vectors with full OIDs", threshold: "0 wrong out of all vectors", status: LEAF}
+  - {node_id: L4.1.1.a-3, level: 4, parent_id: L2.1.a_SCOPE_HASH, test_id: Q-1.1.a-3, metric: "hash of the same tree on Windows vs Linux", oracle: "compare the two runners", threshold: "byte-identical", status: LEAF}
+  # L2.1.b
+  - {node_id: L4.1.1.b-1, level: 4, parent_id: L2.1.b_ANCHOR_RESOLUTION, test_id: Q-1.1.b-1, metric: "cases where the fast, recovery, and fallback paths yield different statuses on the same input", oracle: "net-state computed directly via git rev-parse <commit>:<path>", threshold: "= 0", status: LEAF}
+  - {node_id: L4.1.1.b-2, level: 4, parent_id: L2.1.b_ANCHOR_RESOLUTION, test_id: Q-1.1.b-2, metric: "A->B->A reports fresh with attribution", oracle: "hand-built scenario", threshold: "100%", status: LEAF}
+  - {node_id: L4.1.1.b-3, level: 4, parent_id: L2.1.b_ANCHOR_RESOLUTION, test_id: Q-1.1.b-3, metric: "in-ODB-but-not-ancestor anchors entering the fast path", oracle: "git merge-base --is-ancestor", threshold: "= 0", status: LEAF}
+  # L2.1.c
+  - {node_id: L4.1.1.c-1, level: 4, parent_id: L2.1.c_DIRTY_DETECTION, test_id: Q-1.1.c-1, metric: "phantom-fresh (worktree differs from HEAD but reported clean)", oracle: "normalized worktree bytes vs HEAD blob, computed independently", threshold: "= 0", status: LEAF}
+  - {node_id: L4.1.1.c-2, level: 4, parent_id: L2.1.c_DIRTY_DETECTION, test_id: Q-1.1.c-2, metric: "phantom-dirty without a hint", oracle: "git status as reference", threshold: "= 0 hint-less cases (phantom-dirty with a hint is allowed)", status: LEAF}
+  - {node_id: L4.1.1.c-3, level: 4, parent_id: L2.1.c_DIRTY_DETECTION, test_id: Q-1.1.c-3, metric: "missing blob does not take the dirty-loud branch", oracle: "blobless fixture", threshold: "100%", status: LEAF}
+  # L2.1.d
+  - {node_id: L4.1.1.d-1, level: 4, parent_id: L2.1.d_DOCUMENT_AND_CLOCK_AXES, test_id: Q-1.1.d-1, metric: "document edits where document_changed does not fire", oracle: "mutation test on fixtures", threshold: "= 0", status: LEAF}
+  - {node_id: L4.1.1.d-2, level: 4, parent_id: L2.1.d_DOCUMENT_AND_CLOCK_AXES, test_id: Q-1.1.d-2, metric: "the 8 normalization vectors", oracle: "vectors in the spec", threshold: "8/8", status: LEAF}
+  - {node_id: L4.1.1.d-3, level: 4, parent_id: L2.1.d_DOCUMENT_AND_CLOCK_AXES, test_id: Q-1.1.d-3, metric: "review_after result with a fixed --now", oracle: "hand-built time table covering h/d/w/mo/y", threshold: "100% correct, byte-identical on repeat", status: LEAF}
+  # L2.1.e
+  - {node_id: L4.1.1.e-1, level: 4, parent_id: L2.1.e_PATH_LOOKUP_AND_ATTRIBUTION, test_id: Q-1.1.e-1, metric: "the 11 decide() vectors", oracle: "vectors in the spec", threshold: "11/11", status: LEAF}
+  - {node_id: L4.1.1.e-2, level: 4, parent_id: L2.1.e_PATH_LOOKUP_AND_ATTRIBUTION, test_id: Q-1.1.e-2, metric: "introducing_commits wrong, missing, or mis-ordered (oldest to newest, merges via first parent)", oracle: "git log --first-parent --reverse <range> -- <paths>", threshold: "= 0 mismatches", status: LEAF}
+  - {node_id: L4.1.1.e-3, level: 4, parent_id: L2.1.e_PATH_LOOKUP_AND_ATTRIBUTION, test_id: Q-1.1.e-3, metric: "affected_in_range vs the actual changed-file set for --from/--to", oracle: "git diff --name-only", threshold: "100% equal", status: LEAF}
+  # L2.1.f
+  - {node_id: L4.1.1.f-1, level: 4, parent_id: L2.1.f_STRUCTURE_VERIFICATION, test_id: Q-1.1.f-1, metric: "violating documents that pass (false-pass)", oracle: "labeled violation corpus, at least one case per closed-vocabulary rule", threshold: "= 0", status: LEAF}
+  - {node_id: L4.1.1.f-2, level: 4, parent_id: L2.1.f_STRUCTURE_VERIFICATION, test_id: Q-1.1.f-2, metric: "valid documents rejected (false-fail)", oracle: "valid corpus", threshold: "= 0", status: LEAF}
+  - {node_id: L4.1.1.f-3, level: 4, parent_id: L2.1.f_STRUCTURE_VERIFICATION, test_id: Q-1.1.f-3, metric: "violations carrying {rule, file, line, message} with line from the AST", oracle: "golden test", threshold: "100%", status: LEAF}
+  - {node_id: L4.1.1.f-4, level: 4, parent_id: L2.1.f_STRUCTURE_VERIFICATION, test_id: Q-1.1.f-4, metric: "cap-exceeding cases that crash or hang", oracle: "fuzz + cap cases", threshold: "= 0; always fatal with a hint", status: LEAF}
+  # L2.2.a
+  - {node_id: L4.2.2.a-1, level: 4, parent_id: L2.2.a_LOCK_WRITE_RACES, test_id: Q-2.a-1, metric: "lost updates per 100 race runs", oracle: "final lock content vs the expected set", threshold: "= 0", status: LEAF}
+  - {node_id: L4.2.2.a-2, level: 4, parent_id: L2.2.a_LOCK_WRITE_RACES, test_id: Q-2.a-2, metric: "losing side exits bit 1 with the file unchanged", oracle: "byte compare before/after", threshold: "100%", status: LEAF}
+  - {node_id: L4.2.2.a-3, level: 4, parent_id: L2.2.a_LOCK_WRITE_RACES, test_id: Q-2.a-3, metric: "lock truncated after a kill", oracle: "kill-injection test", threshold: "= 0 (always before or after, never in between)", status: LEAF}
+  # L2.2.b
+  - {node_id: L4.2.2.b-1, level: 4, parent_id: L2.2.b_SERIALIZATION_PORTABILITY, test_id: Q-2.b-1, metric: "canonical(file) == file", oracle: "property test", threshold: "100% byte-identical", status: LEAF}
+  - {node_id: L4.2.2.b-2, level: 4, parent_id: L2.2.b_SERIALIZATION_PORTABILITY, test_id: Q-2.b-2, metric: "two observes of different documents produce disjoint diffs", oracle: "real git merge", threshold: "0 conflicts", status: LEAF}
+  - {node_id: L4.2.2.b-3, level: 4, parent_id: L2.2.b_SERIALIZATION_PORTABILITY, test_id: Q-2.b-3, metric: "same-document conflict recovered by re-running observe", oracle: "scenario", threshold: "100%", status: LEAF}
+  # L2.2.c
+  - {node_id: L4.2.2.c-1, level: 4, parent_id: L2.2.c_LOST_OR_CORRUPT_LOCK, test_id: Q-2.c-1, metric: "lock absent with all documents unobserved reported lock_lost with bit 2 in all mode", oracle: "fixture", threshold: "100%", status: LEAF}
+  - {node_id: L4.2.2.c-2, level: 4, parent_id: L2.2.c_LOST_OR_CORRUPT_LOCK, test_id: Q-2.c-2, metric: "corrupt lock fatal with bit 1", oracle: "fixture", threshold: "100%", status: LEAF}
+  - {node_id: L4.2.2.c-3, level: 4, parent_id: L2.2.c_LOST_OR_CORRUPT_LOCK, test_id: Q-2.c-3, metric: "emptied lock plus --strict sets bit 8", oracle: "fixture, tested exactly once (accepted false-negative)", threshold: "100%", status: LEAF}
+  - {node_id: L4.2.2.c-4, level: 4, parent_id: L2.2.c_LOST_OR_CORRUPT_LOCK, test_id: Q-2.c-4, metric: "valid bootstrap wrongly reported as lost-lock", oracle: "init fixture", threshold: "= 0", status: LEAF}
+  # L2.2.d
+  - {node_id: L4.2.2.d-1, level: 4, parent_id: L2.2.d_LOCK_HAND_EDIT_OR_FORGERY, test_id: Q-2.d-1, metric: "format-breaking hand-edits caught by lock_noncanonical or lock_entry_shape", oracle: "lock mutation scripts", threshold: "100%", status: LEAF}
+  - {node_id: L4.2.2.d-2, level: 4, parent_id: L2.2.d_LOCK_HAND_EDIT_OR_FORGERY, test_id: Q-2.d-2, metric: "forged hashes with anchor and document unchanged caught by Tier B", oracle: "git CLI computing hashes independently at the anchor", threshold: "100%", status: LEAF}
+  - {node_id: L4.2.2.d-3, level: 4, parent_id: L2.2.d_LOCK_HAND_EDIT_OR_FORGERY, test_id: Q-2.d-3, metric: "entry changed with no matching code or document change caught by Tier C", oracle: "git diff <base>", threshold: "100% lock_entry_changed_without_cause", status: LEAF}
+  - {node_id: L4.2.2.d-4, level: 4, parent_id: L2.2.d_LOCK_HAND_EDIT_OR_FORGERY, test_id: Q-2.d-4, metric: "entry removed while its id is still in discovery is caught", oracle: "fixture", threshold: "100%", status: LEAF}
+  - {node_id: L4.2.2.d-5, level: 4, parent_id: L2.2.d_LOCK_HAND_EDIT_OR_FORGERY, test_id: Q-2.d-5, metric: "history checks skipped on a shallow clone without a skipped hint", oracle: "shallow fixture", threshold: "= 0", status: LEAF}
+  - {node_id: L4.2.2.d-6, level: 4, parent_id: L2.2.d_LOCK_HAND_EDIT_OR_FORGERY, test_id: Q-2.d-6, metric: "fully consistent forgery (attacker computes everything correctly)", oracle: "none — no binary oracle exists", threshold: "not measured; Risk Register R1", status: LEAF}
+  # L2.2.e
+  - {node_id: L4.2.2.e-1, level: 4, parent_id: L2.2.e_ENTRY_SHAPE_AND_VERSION, test_id: Q-2.e-1, metric: "shape mismatch reported as unobserved with a hint, no internal error", oracle: "fixture", threshold: "100%", status: LEAF}
+  - {node_id: L4.2.2.e-2, level: 4, parent_id: L2.2.e_ENTRY_SHAPE_AND_VERSION, test_id: Q-2.e-2, metric: "unknown fields preserved across an observe", oracle: "field compare before/after", threshold: "= 0 losses", status: LEAF}
+  # L2.2.f
+  - {node_id: L4.2.2.f-1, level: 4, parent_id: L2.2.f_STORE_CONFIG_TAMPERING, test_id: Q-2.f-1, metric: "configs with anchors, duplicate keys, or unknown rule keys that slip through", oracle: "bad-config corpus", threshold: "= 0 (always fatal)", status: LEAF}
+  - {node_id: L4.2.2.f-2, level: 4, parent_id: L2.2.f_STORE_CONFIG_TAMPERING, test_id: Q-2.f-2, metric: "store nested in a scope at any depth not blocked by validation", oracle: "multi-depth fixture", threshold: "= 0", status: LEAF}
+  - {node_id: L4.2.2.f-3, level: 4, parent_id: L2.2.f_STORE_CONFIG_TAMPERING, test_id: Q-2.f-3, metric: "config_changed / schema_changed vs base ref shown correctly", oracle: "git diff <base> -- .vanguard/", threshold: "100%", status: LEAF}
+  # L2.3.a
+  - {node_id: L4.2.3.a-1, level: 4, parent_id: L2.3.a_CONTAINMENT_LEAK_INTO_HOT_PATH, test_id: Q-3.a-1, metric: "socket or connect syscalls", oracle: "network-namespace-blocked sandbox + strace", threshold: "= 0", status: LEAF}
+  - {node_id: L4.2.3.a-2, level: 4, parent_id: L2.3.a_CONTAINMENT_LEAK_INTO_HOT_PATH, test_id: Q-3.a-2, metric: "child processes without --run-bindings", oracle: "strace -f", threshold: "= 0", status: LEAF}
+  # L2.3.b
+  - {node_id: L4.2.3.b-1, level: 4, parent_id: L2.3.b_PERFORMANCE_BUDGET, test_id: Q-3.b-1, metric: "dirty-detection time on a 2000-file scope", oracle: "clock on the reference runner", threshold: "<= 2.0 s (provisional, re-measured after M0)", status: LEAF}
+  - {node_id: L4.2.3.b-2, level: 4, parent_id: L2.3.b_PERFORMANCE_BUDGET, test_id: Q-3.b-2, metric: "recovery-walk time, subtree scope, 1000 commits", oracle: "clock", threshold: "threshold set in M0 (currently missing — G3)", status: LEAF}
+  - {node_id: L4.2.3.b-3, level: 4, parent_id: L2.3.b_PERFORMANCE_BUDGET, test_id: Q-3.b-3, metric: "malicious brace/glob config causing a hang", oracle: "fuzz", threshold: "= 0 (fatal with a hint within bounded time)", status: LEAF}
+  # L2.3.c
+  - {node_id: L4.2.3.c-1, level: 4, parent_id: L2.3.c_NON_DETERMINISM, test_id: Q-3.c-1, metric: "JSON across 2 runs with the same store, repository, and --now", oracle: "byte diff", threshold: "byte-identical", status: LEAF}
+  - {node_id: L4.2.3.c-2, level: 4, parent_id: L2.3.c_NON_DETERMINISM, test_id: Q-3.c-2, metric: "documents[], unwatched[], unobserved[] sorted by id bytes", oracle: "golden", threshold: "100%", status: LEAF}
+  # L2.3.d
+  - {node_id: L4.2.3.d-1, level: 4, parent_id: L2.3.d_FRESH_CLONE_AND_CI, test_id: Q-3.d-1, metric: "check runs with no bootstrap on every clone kind", oracle: "clone matrix", threshold: "no internal errors; every degradation carries a hint", status: LEAF}
+  - {node_id: L4.2.3.d-2, level: 4, parent_id: L2.3.d_FRESH_CLONE_AND_CI, test_id: Q-3.d-2, metric: "orphaned or shallow anchor not a hard failure", oracle: "fixture", threshold: "100%", status: LEAF}
+  # L2.4.a
+  - {node_id: L4.2.4.a-1, level: 4, parent_id: L2.4.a_ATTESTATION_VISIBILITY, test_id: Q-4.a-1, metric: "observe refused the right way per the refusal table", oracle: "refusal matrix", threshold: "100% with the correct bit (1 vs 4)", status: LEAF}
+  - {node_id: L4.2.4.a-2, level: 4, parent_id: L2.4.a_ATTESTATION_VISIBILITY, test_id: Q-4.a-2, metric: "observe auto-commits or edits files other than the lock", oracle: "tree diff before/after", threshold: "= 0", status: LEAF}
+  # L2.4.b
+  - {node_id: L4.2.4.b-1, level: 4, parent_id: L2.4.b_ACTIONABILITY, test_id: Q-4.b-1, metric: "error fixtures carrying what, where, and the next command", oracle: "envelope linter", threshold: "100%", status: LEAF}
+  - {node_id: L4.2.4.b-2, level: 4, parent_id: L2.4.b_ACTIONABILITY, test_id: Q-4.b-2, metric: "hints[] contain a parseable, runnable command", oracle: "script that runs the hints", threshold: "100%", status: LEAF}
+  # L2.4.c
+  - {node_id: L4.2.4.c-1, level: 4, parent_id: L2.4.c_ENVELOPE_AND_EXIT_BITS, test_id: Q-4.c-1, metric: "JSON vs YAML yield the same values and types", oracle: "parse both and compare", threshold: "100% equal", status: LEAF}
+  - {node_id: L4.2.4.c-2, level: 4, parent_id: L2.4.c_ENVELOPE_AND_EXIT_BITS, test_id: Q-4.c-2, metric: "golden envelope per mode with schema: 1", oracle: "golden", threshold: "100%", status: LEAF}
+  - {node_id: L4.2.4.c-3, level: 4, parent_id: L2.4.c_ENVELOPE_AND_EXIT_BITS, test_id: Q-4.c-3, metric: "inapplicable flags silently ignored", oracle: "flag x mode matrix", threshold: "= 0", status: LEAF}
+  # L2.4.d
+  - {node_id: L4.2.4.d-1, level: 4, parent_id: L2.4.d_OBSERVE_ABUSE, test_id: Q-4.d-1, metric: "bare observe accepted", oracle: "fixture", threshold: "= 0 (usage error)", status: LEAF}
+  - {node_id: L4.2.4.d-2, level: 4, parent_id: L2.4.d_OBSERVE_ABUSE, test_id: Q-4.d-2, metric: "--all touching a stale document", oracle: "fixture", threshold: "= 0 (unobserved only)", status: LEAF}
+  - {node_id: L4.2.4.d-3, level: 4, parent_id: L2.4.d_OBSERVE_ABUSE, test_id: Q-4.d-3, metric: "deliberate observe abuse", oracle: "none", threshold: "not machine-measurable; Risk Register R2, mitigated by verify --base (lock_bulk_change) and PR review", status: LEAF}
+  # L2.5.a
+  - {node_id: L4.2.5.a-1, level: 4, parent_id: L2.5.a_BINDING_RESULTS_LEAK, test_id: Q-5.a-1, metric: "cases where binding_failed raises bit 2", oracle: "pass/fail/timeout/missing matrix", threshold: "= 0", status: LEAF}
+  - {node_id: L4.2.5.a-2, level: 4, parent_id: L2.5.a_BINDING_RESULTS_LEAK, test_id: Q-5.a-2, metric: "pass/fail decided by exit code only", oracle: "binding with fake output", threshold: "100%", status: LEAF}
+  - {node_id: L4.2.5.a-3, level: 4, parent_id: L2.5.a_BINDING_RESULTS_LEAK, test_id: Q-5.a-3, metric: "flaky binding re-run count before a fail is recorded", oracle: "policy", threshold: "own threshold; an exception to the 0% deviation rule (section 7)", status: LEAF}
+  # L2.5.b
+  - {node_id: L4.2.5.b-1, level: 4, parent_id: L2.5.b_ARBITRARY_EXECUTION, test_id: Q-5.b-1, metric: "raw command in frontmatter gets executed", oracle: "fixture", threshold: "= 0 (rejected)", status: LEAF}
+  - {node_id: L4.2.5.b-2, level: 4, parent_id: L2.5.b_ARBITRARY_EXECUTION, test_id: Q-5.b-2, metric: "anything going through a shell (sh -c)", oracle: "strace -f", threshold: "= 0 (pure argv exec)", status: LEAF}
+  - {node_id: L4.2.5.b-3, level: 4, parent_id: L2.5.b_ARBITRARY_EXECUTION, test_id: Q-5.b-3, metric: "provenance line printed on every --run-bindings (git and no-git)", oracle: "golden", threshold: "100%", status: LEAF}
+  # L2.5.c
+  - {node_id: L4.2.5.c-1, level: 4, parent_id: L2.5.c_BINARY_SUPPLY_CHAIN, test_id: Q-5.c-1, metric: "wrong-sha256 file landing in bin/", oracle: "fixture", threshold: "= 0 (and exit != 0)", status: LEAF}
+  - {node_id: L4.2.5.c-2, level: 4, parent_id: L2.5.c_BINARY_SUPPLY_CHAIN, test_id: Q-5.c-2, metric: "plain HTTP accepted", oracle: "fixture", threshold: "= 0", status: LEAF}
+  - {node_id: L4.2.5.c-3, level: 4, parent_id: L2.5.c_BINARY_SUPPLY_CHAIN, test_id: Q-5.c-3, metric: "swapped committed binary still executed", oracle: "fixture", threshold: "= 0 (refused at execution time)", status: LEAF}
+  # L2.5.d
+  - {node_id: L4.2.5.d-1, level: 4, parent_id: L2.5.d_WRITES_OUTSIDE_BOUNDARY, test_id: Q-5.d-1, metric: "bytes written by check including --run-bindings", oracle: "read-only filesystem + tree diff", threshold: "= 0", status: LEAF}
+  - {node_id: L4.2.5.d-2, level: 4, parent_id: L2.5.d_WRITES_OUTSIDE_BOUNDARY, test_id: Q-5.d-2, metric: "a check --record or equivalent existing", oracle: "CLI audit", threshold: "= 0", status: LEAF}

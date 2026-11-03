@@ -110,7 +110,7 @@ func checkCmd() *cobra.Command {
 					return fmt.Errorf("--now must be RFC3339: %w", err)
 				}
 			}
-			engine, err := check.Load(store, check.Options{Now: now})
+			engine, err := check.Load(store, check.Options{Now: now, MaxRecoveryWalk: maxRecovery})
 			if err != nil {
 				return err
 			}

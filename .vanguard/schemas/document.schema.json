@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/vanguard-lint/vanguard-spec/.vanguard/schemas/document.schema.json",
+  "title": "Vanguard store document engine fields",
+  "description": "The engine-owned frontmatter contract every store document under .vanguard/docs/ must satisfy. Everything outside these fields is user-defined and opaque to the engine. The structure layer (M2) enforces this schema at discovery time; until then it is the reviewed contract.",
+  "type": "object",
+  "required": ["id"],
+  "additionalProperties": true,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]*$",
+      "maxLength": 128,
+      "description": "Document identity; must equal the file name without extension and be unique across the store."
+    },
+    "schema": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]*$",
+      "description": "Optional name of the JSON Schema in .vanguard/schemas/ that binds this document's content (file <name>.schema.json). Important documents declare one; some documents legitimately have none."
+    },
+    "watches": {
+      "type": "object",
+      "additionalProperties": false,
+      "anyOf": [
+        { "required": ["paths"] },
+        { "required": ["review_after"] }
+      ],
+      "properties": {
+        "paths": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Globs over the target repository; churn inside any matched path makes the document stale."
+        },
+        "review_after": {
+          "type": "string",
+          "pattern": "^[0-9]+[hdwmy]?$|^[0-9]+(h|d|w|mo|y)$",
+          "description": "Clock-axis staleness: h/d/w/mo/y, a bare integer means days."
+        }
+      }
+    },
+    "bindings": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Names of allowlisted bindings from vanguard.yaml; never inline commands."
+    }
+  }
+}

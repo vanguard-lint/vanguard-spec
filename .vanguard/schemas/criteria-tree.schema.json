@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/vanguard-lint/vanguard-spec/.vanguard/schemas/criteria-tree.schema.json",
+  "title": "Vanguard quality criteria tree",
+  "description": "Node list of the epistemic quality decomposition (L0 value invariant, L1 pillars, L2 failure mechanisms, L4 measurable leaves). Node fields follow the node schema in .vanguard/docs/quality-plan.md section 6. L3 triggering contexts are stored as the contexts array of their L2 parent. Validated against .vanguard/quality/criteria-tree.yaml.",
+  "type": "object",
+  "required": ["schema_version", "nodes"],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "const": 1 },
+    "source": {
+      "type": "string",
+      "description": "The design document the tree was exported from."
+    },
+    "nodes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/node" }
+    }
+  },
+  "$defs": {
+    "status": {
+      "enum": ["DRAFT", "UNDER_ATTACK", "FROZEN", "LEAF"],
+      "description": "Node lifecycle: DRAFT -> UNDER_ATTACK -> FROZEN, or LEAF for a measurable L4 node."
+    },
+    "verdict": {
+      "enum": ["PENDING", "VALID", "REJECTED"]
+    },
+    "verification_protocol": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["method", "attacker_rounds_passed", "referee_verdict"],
+      "properties": {
+        "method": { "type": "string", "minLength": 1 },
+        "attacker_rounds_passed": { "type": "integer", "minimum": 0 },
+        "referee_verdict": { "$ref": "#/$defs/verdict" }
+      }
+    },
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["node_id", "level", "status"],
+      "properties": {
+        "node_id": {
+          "type": "string",
+          "pattern": "^L[0-4]\\.[0-9A-Za-z._-]+$|^L0_[A-Z_]+$"
+        },
+        "level": { "type": "integer", "minimum": 0, "maximum": 4 },
+        "parent_id": { "type": "string", "minLength": 1 },
+        "dimension": {
+          "type": "string",
+          "description": "What distinguishes this node from its siblings (failure mechanism, triggering context, ...)."
+        },
+        "statement": { "type": "string", "minLength": 1 },
+        "justification": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["sufficiency", "necessity"],
+          "properties": {
+            "sufficiency": { "type": "string", "minLength": 1 },
+            "necessity": { "type": "string", "minLength": 1 }
+          }
+        },
+        "contexts": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "L3 triggering contexts (Nominal / Edge / Adverse / Adversarial) attached to their L2 parent."
+        },
+        "metric": {
+          "type": "string",
+          "description": "L4 only: what is measured."
+        },
+        "oracle": {
+          "type": "string",
+          "description": "L4 only: the independent measurement procedure. The oracle is never the engine under test."
+        },
+        "threshold": {
+          "type": "string",
+          "description": "L4 only: the binary pass condition."
+        },
+        "test_id": {
+          "type": "string",
+          "pattern": "^Q-[0-9]+(\\.[a-z0-9]+)*(-[0-9]+)?$",
+          "description": "L4 only: the single test or harness that realizes the leaf."
+        },
+        "status": { "$ref": "#/$defs/status" },
+        "verification_protocol": { "$ref": "#/$defs/verification_protocol" },
+        "children": {
+          "type": "array",
+          "items": { "type": "string" },
+          "uniqueItems": true,
+          "description": "node_id references of the child nodes."
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "level": { "enum": [0, 1, 2, 3] } }, "required": ["level"] },
+          "then": {
+            "required": ["statement", "justification", "verification_protocol", "children"],
+            "properties": {
+              "metric": false,
+              "oracle": false,
+              "threshold": false,
+              "test_id": false
+            }
+          }
+        },
+        {
+          "if": { "properties": { "level": { "const": 4 } }, "required": ["level"] },
+          "then": {
+            "required": ["parent_id", "metric", "oracle", "threshold", "test_id"],
+            "properties": {
+              "statement": false,
+              "justification": false,
+              "contexts": false,
+              "children": false,
+              "dimension": false
+            }
+          }
+        }
+      ]
+    }
+  }
+}

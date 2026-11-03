@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/vanguard-lint/vanguard-spec/.vanguard/schemas/package-contract.schema.json",
+  "title": "Engine package contract document",
+  "description": "Structure binding for the EGM package contract documents under .vanguard/docs/engine/. One document per Go package; every claim must cite the exact file and symbol it describes. Declared by frontmatter: schema: package-contract.",
+  "type": "object",
+  "required": ["sections"],
+  "properties": {
+    "sections": {
+      "type": "array",
+      "description": "Headings in document order.",
+      "items": { "type": "string" }
+    }
+  },
+  "anyOf": [
+    {
+      "comment": "Structural encoding of the markdown contract: the required H1 title, the four contract sections in order, and per-claim citation format. Machine enforcement lands with the M2 structure layer; until then this schema is the reviewed structure contract checked in review.",
+      "required": ["h1", "required_sections", "citation_format"],
+      "properties": {
+        "h1": { "const": "# <package> — <one-line role>" },
+        "required_sections": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": [
+            { "const": "## Interface" },
+            { "const": "## Invariants" },
+            { "const": "## Side effects" },
+            { "const": "## Verification" }
+          ]
+        },
+        "citation_format": {
+          "const": "[file.go:Symbol] — every interface, invariant, and side-effect claim cites the exact source location; no claims from names alone."
+        },
+        "frontmatter_binding": {
+          "const": "id equals the file name, watches.paths covers the package's Go files, review_after present, schema: package-contract."
+        }
+      }
+    }
+  ]
+}

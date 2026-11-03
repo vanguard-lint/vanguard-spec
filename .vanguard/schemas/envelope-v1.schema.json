@@ -1,0 +1,101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/vanguard-lint/vanguard-spec/.vanguard/schemas/envelope-v1.schema.json",
+  "title": "Vanguard output envelope (schema 1)",
+  "description": "The machine-readable output contract of every vanguard mode (check all/doc/path/range and observe), identical in JSON and YAML. Exit bits: 1 fatal, 2 stale, 4 dirty, 8 gaps under strict, 16 binding failed, 32 affected in range. Documents declare this binding with frontmatter schema: envelope-v1.",
+  "type": "object",
+  "required": ["mode", "schema", "exit_bits", "documents"],
+  "additionalProperties": false,
+  "properties": {
+    "mode": {
+      "enum": ["all", "doc", "path", "range", "observe"],
+      "description": "The run mode that produced the envelope."
+    },
+    "schema": { "const": 1 },
+    "exit_bits": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 63,
+      "description": "Composed by OR from the exit-bit table; bit 64 (lock_integrity) is reserved by the lock-integrity proposal and extends the maximum when ratified."
+    },
+    "documents": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["doc", "status"],
+        "additionalProperties": false,
+        "properties": {
+          "doc": { "type": "string" },
+          "status": { "enum": ["fresh", "stale", "dirty", "unobserved"] },
+          "triggered_watches": { "type": "array", "items": { "type": "string" } },
+          "changed_paths": { "type": "array", "items": { "type": "string" } },
+          "introducing_commits": { "type": "array", "items": { "type": "string" } },
+          "document_changed": { "type": "boolean" },
+          "anchor_orphaned": { "type": "boolean" },
+          "anchor_recovered": { "type": "boolean" },
+          "violations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["rule", "file", "line", "message"],
+              "additionalProperties": false,
+              "properties": {
+                "rule": { "type": "string" },
+                "file": { "type": "string" },
+                "line": { "type": "integer", "minimum": 0 },
+                "message": { "type": "string" }
+              }
+            }
+          },
+          "bindings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["name", "status"],
+              "additionalProperties": false,
+              "properties": {
+                "name": { "type": "string" },
+                "status": { "enum": ["pending", "pass", "fail"] },
+                "exit_code": { "type": "integer" },
+                "command": { "type": "string" },
+                "output": { "type": "string" }
+              }
+            }
+          },
+          "hints": { "type": "array", "items": { "type": "string" } },
+          "observed_at": { "type": "string" },
+          "anchor": { "type": "string" }
+        }
+      }
+    },
+    "unwatched": { "type": "array", "items": { "type": "string" } },
+    "unobserved": { "type": "array", "items": { "type": "string" } },
+    "affected_in_range": { "type": "array", "items": { "type": "string" } },
+    "lock_lost": { "type": "boolean" },
+    "hints": { "type": "array", "items": { "type": "string" } },
+    "lock": {
+      "type": "object",
+      "required": ["changed", "path"],
+      "additionalProperties": false,
+      "properties": {
+        "changed": { "type": "boolean" },
+        "path": { "type": "string" }
+      }
+    },
+    "refused": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["doc", "reason"],
+        "additionalProperties": false,
+        "properties": {
+          "doc": { "type": "string" },
+          "reason": { "type": "string" },
+          "offending": { "type": "array", "items": { "type": "string" } },
+          "hints": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    },
+    "pruned": { "type": "array", "items": { "type": "string" } }
+  }
+}
