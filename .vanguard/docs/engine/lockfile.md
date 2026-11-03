@@ -50,7 +50,7 @@ other.
 - Empty docs serialize to the exact init scaffold bytes [lockfile.go:Serialize].
 - The check-then-write window is mutual exclusion, not hope: a concurrent
   loser must observe the winner canonical bytes unchanged (0 lost updates)
-  [lockfile_test.go:TestCASLoserLeavesWinnerBytes].
+  [loser_test.go:TestCASLoserLeavesWinnerBytes].
 - A CAS conflict aborts with "lock changed during observe â€” re-run"; writes
   are atomic via temp file + rename [lockfile.go:Save, lockfile.go:atomicWrite].
 

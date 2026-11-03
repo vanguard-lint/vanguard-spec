@@ -40,6 +40,8 @@ this package is wiring only.
   `Options.MaxRecoveryWalk` [main.go:checkCmd].
 - `--fail-on-affected` sets exit bit 32 when affected_in_range is non-empty
   (range mode only) [main.go:checkCmd].
+- `--run-bindings` executes the allowlisted bindings for documents in scope;
+  refused in range mode [main.go:checkCmd].
 - Bare `observe` (no id, no `--all`, no `--prune`) is refused by the engine
   as a usage error [main.go:observeCmd].
 - `findStore` walks upward to the filesystem root and errors with "run

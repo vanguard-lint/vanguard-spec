@@ -88,3 +88,77 @@ Date: 2026-11-03 · Design: `docs/designs/vanguard.md` (normative canon) · Code
 - **M3** — implemented (core): canonical sorted serialization with unknown-field preservation, atomic temp+rename CAS write with "lock changed during observe — re-run" abort, observe preconditions with per-kind refusal bits (fatal 1 / dirty 4), future-time guard + monotonicity + `--at`, guarded `--all`, standalone `--prune`, lost-lock detector (all-mode, `lock_lost` + default stale bit, emptied-lock not treated as lost). Drift: `refused[]`/`pruned[]` never reach the envelope, git-mode empty-scope refusal is dead code.
 - **M4** — partially implemented: all four check modes, envelope `schema: 1`, exit bits 1/2/4/8/16/32 composed by OR, `--strict`∘`--from` usage error, `--fail-on-affected` bit 32, `--to` defaults to HEAD, net-state rule with recovery walk and `anchor_recovered`/`anchor_orphaned` flags; drift: `--from` unresolved (blocker), review_after-only staleness sets no bit 2, `unobserved[]` unsorted, `anchor_orphaned` missing on the fresh fallback, `--max-recovery-walk` dead flag, no YAML quoting parity, fatal produces no envelope.
 - **M5** — partially implemented: bindings allowlist (array form only), direct argv exec (no shell), `cwd: target|store`, `VANGUARD_TARGET`/`VANGUARD_DOC`/`VANGUARD_STORE` injection, per-binding timeout, provenance line, exit bit 16, transient results (nothing persisted); missing: `vanguard install` + pinned provisioning (5.2), `.vanguard/bin/` PATH prepend + execution-time checksum verification, process-tree kill, pending notation on default check, shlex single-string shorthand, `output_parser`.
+
+## Store-wide contract audit (2026-11-03, follow-up round)
+
+Scope: all 23 store documents (11 engine contracts, canon mirror, results,
+criteria-tree, quality/rollout plans, 9 binding cards). Method: mechanical
+citation resolution (every `[file:Symbol]` must resolve to a real file and
+symbol), claim-by-claim comparison against current code, byte-wise mirror
+comparison, and set comparison of node coverage.
+
+## command-surface.md
+
+- Blocker: claim "`..` segments rejected" was false for relative paths, and
+  the rejection was silently discarded anyway. `resolvePathArg` applied
+  `filepath.IsLocal` only to absolute arguments; a relative `../outside`
+  passed through `filepath.Clean` untouched. Worse, the caller (`checkCmd`)
+  assigned the return values straight into `sel.Path, sel.PathIsDir`, so a
+  rejected argument produced a silent "0 documents" result instead of an
+  error - a false negative answer to the reverse lookup. Fixed in this
+  round: `IsLocal` now guards the relative branch, the signature returns an
+  error, and the caller surfaces it. Verified: `vanguard check --path
+  ../outside` exits 1 with "Error: --path must stay inside the target";
+  full test suite, vet, and build green.
+- Major: `--run-bindings` existed but was undocumented. The flag is
+  registered on `checkCmd` and wired into `Selection.RunBindings`, but
+  neither the Interface nor the Invariants section named it. Fixed:
+  invariant added (refused in range mode).
+- Proposed, not applied: `checkPath` omits fresh matches from the result
+  ("fresh matches are omitted", check.go ~line 372). This is intentional
+  engine behavior (reverse lookup surfaces only problems) but no contract
+  states it; a user running `check --path README.md` against a fresh store
+  sees "0 documents" with no explanation.
+
+## lockfile.md
+
+- Major: citation pointed at the wrong file.
+  `[lockfile_test.go:TestCASLoserLeavesWinnerBytes]` - the symbol exists
+  but lives in `loser_test.go` (the dedicated CAS loser-behavior test file
+  from the quality batch), not `lockfile_test.go`. Fixed the citation.
+
+## check-engine.md, config.md, docmodel.md, duration.md, hashnorm.md, pathmatch.md, provider.md, scope.md, structure.md
+
+- No drift detected. All 124 citations across the 11 contracts resolve to
+  existing files and symbols; structural claims (Config struct fields,
+  Binding shape, default tolerance values, mode precedence, exit bits,
+  ScopeHash strategies, Dirty semantics, duration conversion table) match
+  the current implementation.
+
+## design/vanguard.md (canon mirror)
+
+- No drift detected. The mirror body is byte-identical to
+  `docs/designs/vanguard.md` (the 114-byte difference is the frontmatter
+  only). An initial byte-hash comparison reported DIVERGED; investigation
+  showed the comparator itself was at fault (PowerShell `Get-Content`
+  without an explicit encoding mis-decoded UTF-8 em-dashes as ANSI,
+  inflating the expected file by 3,359 bytes). Re-verified with
+  `[System.IO.File]::ReadAllBytes`.
+
+## results.yaml vs criteria-tree.yaml
+
+- No drift detected. Node coverage is exactly 1:1 - 100 node ids on both
+  sides, none missing, none extra.
+
+## Binding cards (community/design/review)
+
+- No drift detected. All 9 cards resolve; every watched file exists at its
+  declared path.
+
+## quality-plan.md, rollout-plan.md, vanguard-engine.md
+
+- No drift detected. The "current state" claims in rollout-plan (check/
+  observe core end to end, both providers, CI, archived goldfish review)
+  and the layout map in vanguard-engine match reality. quality-plan's
+  status line ("DRAFT, no adversarial round run") remains accurate for the
+  plan itself.
