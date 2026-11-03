@@ -2,11 +2,11 @@
   "version": 1,
   "docs": {
     "check-engine": {
-      "anchor": "d5203c8b19e3204969de4f9a7ee58d2619890282",
-      "observed_at": "2026-11-03T09:51:17Z",
+      "anchor": "84d935807bf984be567b7cbfa8b1b285ad256ca8",
+      "observed_at": "2026-11-03T10:30:17Z",
       "scope_tree_hash": "sha256:c115b7cc18f901a3862e56536264c1dfd3cb99e828ee6d07f1670d65a5a22ec0",
       "scope_file_count": 10,
-      "content_hash": "sha256:d296fa64b00c813b905426a99032483c1b628d4d679b7281201becf9d34b2abf"
+      "content_hash": "sha256:2febca25ff0df29aa5765bb6e8adae1304aa6c825c3889c9cc0b446dafd8fd2f"
     },
     "code-of-conduct": {
       "anchor": "c179cfc785f27e1348616f3075a88879f5994ff7",
@@ -16,11 +16,11 @@
       "content_hash": "sha256:9c507f05e148df19b5264fb537dba61549913eae807c117668d5dceeeb0ebc97"
     },
     "command-surface": {
-      "anchor": "db6d2cc6ba35b6ea76f9c2edd79b13f1a9de2de5",
-      "observed_at": "2026-11-03T10:18:50Z",
+      "anchor": "84d935807bf984be567b7cbfa8b1b285ad256ca8",
+      "observed_at": "2026-11-03T10:30:17Z",
       "scope_tree_hash": "sha256:46c0cb840b25276a3ccc1783d6a50f502cc42bcb927d34881d2f6d550d2669d0",
       "scope_file_count": 1,
-      "content_hash": "sha256:1fbc24ded1b6520c1ee9498e0872e0bb675f530af0bcfe2b871209e9a449ac27"
+      "content_hash": "sha256:a43162093c09f50ecfc424a2db73a5f22978b9d2742f1e5dbdf96390e92b4bfb"
     },
     "config": {
       "anchor": "19d2f9f67c89cf6c6818e8bab72b7e9ba7e3f579",
@@ -90,18 +90,18 @@
       "content_hash": "sha256:110b3e852572382ee6fb377c6a4ed9c4fbd950ce5a11a6c926f59aaaac32c2b5"
     },
     "pathmatch": {
-      "anchor": "d5203c8b19e3204969de4f9a7ee58d2619890282",
-      "observed_at": "2026-11-03T09:51:17Z",
+      "anchor": "84d935807bf984be567b7cbfa8b1b285ad256ca8",
+      "observed_at": "2026-11-03T10:30:17Z",
       "scope_tree_hash": "sha256:544161ab8cecf8b69042c08d827a70e657722529609a0e1234c328faa332a65b",
       "scope_file_count": 3,
-      "content_hash": "sha256:b5a2fa425c7498a9d1d66f4b0e03f186a6894e257b615f7876960d21c5585ec9"
+      "content_hash": "sha256:74c55528641f56c8b99d9273ab70188e1b2df6d93592100848bd3f212bddad58"
     },
     "provider": {
-      "anchor": "d5203c8b19e3204969de4f9a7ee58d2619890282",
-      "observed_at": "2026-11-03T09:51:18Z",
+      "anchor": "84d935807bf984be567b7cbfa8b1b285ad256ca8",
+      "observed_at": "2026-11-03T10:30:17Z",
       "scope_tree_hash": "sha256:0ce85baa051e233118b0fa65abaa3089d7a98b83e0acde5f876b01d1a7d483fe",
       "scope_file_count": 3,
-      "content_hash": "sha256:fe91927f6ce0b97e8852dd217dfab091df89b7dbcc7938100ae45c10734746a5"
+      "content_hash": "sha256:2ca5529151a86b10328b01e24fdd4472c915189816c5fad74f3e7e55f99d3d78"
     },
     "quality-plan": {
       "anchor": "c03a30b522a1016e3137f69fd1c8747fd23bb5bb",
@@ -157,11 +157,11 @@
       "content_hash": "sha256:1e28ed3bebb3c33b9132667bbd7838d9781485ee01e9d4979e20e4cc62d9a6c3"
     },
     "vanguard-engine": {
-      "anchor": "db6d2cc6ba35b6ea76f9c2edd79b13f1a9de2de5",
-      "observed_at": "2026-11-03T10:18:50Z",
+      "anchor": "84d935807bf984be567b7cbfa8b1b285ad256ca8",
+      "observed_at": "2026-11-03T10:30:18Z",
       "scope_tree_hash": "sha256:39d5cd0a63e50cfa0ccf31a7ef8f4592048bc1ab1365ee1fd3c580990b7ac1ee",
       "scope_file_count": 33,
-      "content_hash": "sha256:87872601de6d13f37b7bf94d2e35a530a2cfe5a8092c6a89df8e28e53fc219e3"
+      "content_hash": "sha256:e28e28dfd6c77c2963c6ab2ad84e3c65eabd635e2c5fc8540a944d8105c73cea"
     }
   }
 }
