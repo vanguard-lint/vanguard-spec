@@ -8,6 +8,13 @@
       "scope_file_count": 10,
       "content_hash": "sha256:d296fa64b00c813b905426a99032483c1b628d4d679b7281201becf9d34b2abf"
     },
+    "code-of-conduct": {
+      "anchor": "c179cfc785f27e1348616f3075a88879f5994ff7",
+      "observed_at": "2026-11-03T10:01:34Z",
+      "scope_tree_hash": "sha256:4293a0b578ab305d16c93d7edf16e9cd91ceaa934dc9ed065d99c1d67cf94004",
+      "scope_file_count": 1,
+      "content_hash": "sha256:9c507f05e148df19b5264fb537dba61549913eae807c117668d5dceeeb0ebc97"
+    },
     "command-surface": {
       "anchor": "19d2f9f67c89cf6c6818e8bab72b7e9ba7e3f579",
       "observed_at": "2026-11-03T08:49:42Z",
@@ -22,9 +29,30 @@
       "scope_file_count": 2,
       "content_hash": "sha256:9cd336da9883b7df5095e799f25f11945436ac21a8e2e56a94a79440a66d317a"
     },
+    "contributing": {
+      "anchor": "c179cfc785f27e1348616f3075a88879f5994ff7",
+      "observed_at": "2026-11-03T10:01:34Z",
+      "scope_tree_hash": "sha256:a308606c65d93b401252843c17b633e3b559e71eec2f4da829878f31e815a551",
+      "scope_file_count": 1,
+      "content_hash": "sha256:c6ea660e3e9fb54beda65a590d7f5d72f6f1ae4db089b80722e1c32955afb91b"
+    },
     "criteria-tree": {
       "observed_at": "2026-11-03T09:13:30Z",
       "content_hash": "sha256:4fb2df4e3eebb161c8bdf10b3a0842e8ba215c5bbaef3db8359b7c3a6afd2337"
+    },
+    "design-draft": {
+      "anchor": "c179cfc785f27e1348616f3075a88879f5994ff7",
+      "observed_at": "2026-11-03T10:01:34Z",
+      "scope_tree_hash": "sha256:70614f6b30dd068ec7ae7478e1733f34f518b8f87c8f8157db4c8a27e27f45bd",
+      "scope_file_count": 1,
+      "content_hash": "sha256:6500a5e014c3de7437581d7ee83c588c0a2edb2f5c56495f291431823959c3b7"
+    },
+    "discussion-summary": {
+      "anchor": "c179cfc785f27e1348616f3075a88879f5994ff7",
+      "observed_at": "2026-11-03T10:01:34Z",
+      "scope_tree_hash": "sha256:3e5062f3668728d2eaafbf5175b8c6f192302b370b643b6ffc7b6ab8f6ce392a",
+      "scope_file_count": 1,
+      "content_hash": "sha256:ae3d33397f271c3ce361d23a6c39302b032b5831163e950c528ed4afce2fe6d7"
     },
     "docmodel": {
       "anchor": "9b1bf5539c7a18d3f067466c241b5e61f1aa66de",
@@ -32,6 +60,13 @@
       "scope_tree_hash": "sha256:3d0dbbd98694dbe9f45b54f4404902a3553a9007a48a54f1f3c800575b74b38d",
       "scope_file_count": 2,
       "content_hash": "sha256:50c0f94473a6d1fa5d7cb5945348feabf71dd1e8af99b7a344924ef2f6c6325b"
+    },
+    "drift-report": {
+      "anchor": "c179cfc785f27e1348616f3075a88879f5994ff7",
+      "observed_at": "2026-11-03T10:01:34Z",
+      "scope_tree_hash": "sha256:c489f6aea3a810698b27958a8a132208a066fd54f0c2b011369595bba39e9f9b",
+      "scope_file_count": 1,
+      "content_hash": "sha256:49f920fd76c15f135bad647b8f58c4e83a7568473a75b8b1c0ee38b88b3ba912"
     },
     "duration": {
       "anchor": "19d2f9f67c89cf6c6818e8bab72b7e9ba7e3f579",
@@ -46,6 +81,13 @@
       "scope_tree_hash": "sha256:34266cddbe3769b2a98d1ac4a9be7806647d103b179e0c47b656dc8a4ab50d14",
       "scope_file_count": 2,
       "content_hash": "sha256:a02e05dbf757c3393395c140b31274a95741982453b24e563a1afb4a6230f675"
+    },
+    "lock-integrity-en": {
+      "anchor": "c179cfc785f27e1348616f3075a88879f5994ff7",
+      "observed_at": "2026-11-03T10:01:34Z",
+      "scope_tree_hash": "sha256:ec2f14dcf233a43542d2952df67ebe40f334704973c38d7732b5e270e3d02f31",
+      "scope_file_count": 1,
+      "content_hash": "sha256:f2073696b9279b1b83e3b4c55c4fa8ca0c70963340ff470fdfba9781bb2f31c7"
     },
     "lockfile": {
       "anchor": "d5203c8b19e3204969de4f9a7ee58d2619890282",
@@ -75,6 +117,13 @@
       "scope_file_count": 4,
       "content_hash": "sha256:44086de7d394b9ae9be3601cd4263a8500288eb6c8a1cecb6e844c8f5321ca6e"
     },
+    "readme": {
+      "anchor": "c179cfc785f27e1348616f3075a88879f5994ff7",
+      "observed_at": "2026-11-03T10:01:35Z",
+      "scope_tree_hash": "sha256:347ac47b65e408562e9008dd3ed3451bbf02f115c3d59c09bdba74267f40bb30",
+      "scope_file_count": 1,
+      "content_hash": "sha256:fb7cea99da6d18e376ee423da70d292a4c5b16f507012761cde3b063ec95d640"
+    },
     "results": {
       "observed_at": "2026-11-03T09:51:18Z",
       "content_hash": "sha256:862cf00650f612cbca88ffe5daa5edc22d7a2d79c7e61373bccb60e7d6e384a5"
@@ -92,6 +141,13 @@
       "scope_tree_hash": "sha256:f519005b32c188aefc9fd17725e42ba609cf72fa497cbd9852e832237170d1e2",
       "scope_file_count": 2,
       "content_hash": "sha256:c1bff0661385bfbe7b6ab86006e5c3d3348d980ea3f6cf87581ae8800819b5e8"
+    },
+    "security": {
+      "anchor": "c179cfc785f27e1348616f3075a88879f5994ff7",
+      "observed_at": "2026-11-03T10:01:35Z",
+      "scope_tree_hash": "sha256:77f69b02e66d0ee19e615bfc47dc3bb5c7f6b8de09bed3b318851742e8cf37c8",
+      "scope_file_count": 1,
+      "content_hash": "sha256:4606bfbb68d5a8b58406b323936b2b9f3183e4b861fe1d808ef83c186ac1f642"
     },
     "structure": {
       "anchor": "d5203c8b19e3204969de4f9a7ee58d2619890282",
