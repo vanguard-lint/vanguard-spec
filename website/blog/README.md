@@ -1,10 +1,8 @@
 # Vanguard Blog
 
 This folder contains the Vanguard blog. The blog is rendered using
-[Hugo](https://gohugo.io/), following the same layout structure as the
-[osv.dev blog](https://github.com/google/osv.dev/tree/master/website/blog):
-`layouts/index.html` renders the post list, `layouts/posts/single.html`
-renders each post.
+[Hugo](https://gohugo.io/): `layouts/index.html` renders the post list,
+`layouts/posts/single.html` renders each post.
 
 During deploy, the pages workflow renders this folder into HTML and serves it
 at `/blog/`. The rendered pages reuse the main site's stylesheet
