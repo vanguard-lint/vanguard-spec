@@ -37,4 +37,24 @@ len=$(echo -n "$subject" | wc -c)
 
 echo "$subject" | grep -Eq '\.$' && fail "subject must not end with a period"
 
+# Body rules — mirrors scripts/commitlint.py: a body is required for spec,
+# feat, break: blocks, and commits touching 3+ files; break: needs refs:.
+c_type=${subject%%(*}
+c_type=${c_type%%:*}
+n_files=$(git diff --cached --name-only --diff-filter=ACMR | grep -c . || true)
+needs_body=false
+case "$c_type" in
+  spec|feat) needs_body=true ;;
+esac
+[ "$n_files" -ge 3 ] && needs_body=true
+
+body_lines=$(tail -n +2 "$msg_file")
+if [ "$needs_body" = true ]; then
+  content=$(printf '%s\n' "$body_lines" | grep -Ev '^\s*(break:|change:|refs:|new:|test:)' | grep -c . || true)
+  [ "$content" -ge 1 ] || fail "body required ($c_type, $n_files files)"
+fi
+if printf '%s\n' "$body_lines" | grep -Eq '^\s*break:'; then
+  printf '%s\n' "$body_lines" | grep -Eq '^\s*refs:' || fail "break: block requires a refs: line"
+fi
+
 exit 0
