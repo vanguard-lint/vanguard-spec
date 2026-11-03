@@ -37,4 +37,18 @@ fail() {
 }
 
 [ -n "$prose" ] && [ -n "$code" ] && fail
+
+# at most one store document per commit (rationale:
+# .vanguard/rules/git-commit-message.md, section "One store document per
+# commit")
+store_count=$(git diff --cached --name-only -- '.vanguard/docs/' | grep -c .)
+if [ "$store_count" -gt 1 ]; then
+  echo "commit rejected by .vanguard/rules/git-commit-message.md:" >&2
+  echo "  at most one file under .vanguard/docs/ per commit" >&2
+  echo "  staged store files: $store_count" >&2
+  echo "  one document = one commit: each store document carries its own" >&2
+  echo "  attestation provenance and must be reviewable in isolation" >&2
+  exit 1
+fi
+
 exit 0
