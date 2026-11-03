@@ -2,13 +2,14 @@
 // multi-glob combination, and the store-exclusion filters.
 //
 // scope_tree_hash = sha256(concat, for each glob, sorted by glob bytes:
-//     glob || 0x00 || per-glob-hash || 0x0A)
+//
+//	glob || 0x00 || per-glob-hash || 0x0A)
 //
 // where a per-glob hash is either a kind-prefixed git tree OID (subtree
 // strategy) or the enumerated entry hash
 //
-//     sha256(concat, for each entry, sorted by path bytes:
-//         path || 0x00 || mode || 0x00 || content-identity || 0x0A)
+//	sha256(concat, for each entry, sorted by path bytes:
+//	    path || 0x00 || mode || 0x00 || content-identity || 0x0A)
 package scope
 
 import (
