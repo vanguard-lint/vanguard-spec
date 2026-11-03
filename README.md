@@ -4,6 +4,8 @@
 
 A spec-driven verification harness that locks down architectural invariants before code is written — designed around the Elephant-Goldfish Model for agentic workflows.
 
+Vanguard is a standalone command-line tool that keeps specification documents honest. It manages a project's spec documents (markdown, JSON, YAML, and DSL dialects such as C4), verifies that each document follows the structure its owner declared, and answers one question deterministically: which documents have gone stale, and what exactly made them stale.
+
 ## Principles
 
 - **Fresh only when attested** — staleness clears by a human `observe`, committed to git.
