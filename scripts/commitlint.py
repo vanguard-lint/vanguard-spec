@@ -6,6 +6,7 @@ Enforced checks (all deterministic):
 - subject: starts lowercase/digit, no trailing period, <= 72 chars
 - body required for: spec, feat, any `break:` block, commits touching 3+ files
 - `break:` requires a `refs:` line
+- prose (markdown + attestation lockfile) never shares a commit with code
 
 Merge commits are skipped. Exits non-zero and prints every violation.
 """
@@ -26,6 +27,10 @@ SCOPES = frozenset(
 SUBJECT_RE = re.compile(r"^([a-z]+)(?:\(([a-z0-9-]+)\))?: (\S.*)$")
 MAX_SUBJECT = 72
 
+# Prose side of the one-kind-of-change rule: markdown plus the lockfile that
+# attests it. Everything else is the code side.
+PROSE_RE = re.compile(r"\.md$|^\.vanguard/vanguard\.lock$")
+
 
 def git(*args: str) -> str:
     return subprocess.run(
@@ -33,9 +38,20 @@ def git(*args: str) -> str:
     ).stdout
 
 
-def changed_file_count(sha: str) -> int:
+def changed_files(sha: str) -> list[str]:
     out = git("show", "--name-only", "--format=", sha)
-    return len([line for line in out.splitlines() if line.strip()])
+    return [line for line in out.splitlines() if line.strip()]
+
+
+def changed_file_count(sha: str) -> int:
+    return len(changed_files(sha))
+
+
+def prose_code_mix(sha: str) -> tuple[list[str], list[str]]:
+    files = changed_files(sha)
+    prose = [f for f in files if PROSE_RE.search(f)]
+    code = [f for f in files if not PROSE_RE.search(f)]
+    return prose, code
 
 
 def violations(sha: str, files_hint: int | None = None) -> list[str]:
@@ -46,6 +62,14 @@ def violations(sha: str, files_hint: int | None = None) -> list[str]:
 
     if subject.startswith("Merge "):
         return errors
+
+    prose, code = prose_code_mix(sha)
+    if prose and code:
+        errors.append(
+            f"{sha[:9]}: prose and code share one commit "
+            f"({len(prose)} markdown/lockfile vs {len(code)} code files) — "
+            "split into two commits"
+        )
 
     m = SUBJECT_RE.match(subject)
     if not m:

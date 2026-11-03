@@ -1,0 +1,40 @@
+#!/bin/sh
+# pre-commit hook — prose and code never share a commit.
+# Markdown files (+ the lockfile that attests them) commit alone; code,
+# config, and workflows commit alone. Rationale: .vanguard/rules/
+# git-commit-message.md, section "One kind of change per commit".
+# Enable once per clone:  git config core.hooksPath .githooks
+
+# merge commits may mix anything
+[ -f "$(git rev-parse --git-dir)/MERGE_HEAD" ] && exit 0
+
+case ":$PATH:" in
+  *:/usr/bin:*) ;;
+  *) PATH="/usr/bin:$PATH" ;;
+esac
+
+prose=""
+code=""
+for f in $(git diff --cached --name-only --diff-filter=ACMR); do
+  case "$f" in
+    *.md|.vanguard/vanguard.lock)
+      prose="$prose$f
+" ;;
+    *)
+      code="$code$f
+" ;;
+  esac
+done
+
+fail() {
+  echo "commit rejected by .vanguard/rules/git-commit-message.md:" >&2
+  echo "  prose and code must not share a commit" >&2
+  echo "  prose files:   $(echo "$prose" | grep -c .)" >&2
+  echo "  code files:    $(echo "$code" | grep -c .)" >&2
+  echo "  split the change: commit the markdown (and its attestation" >&2
+  echo "  lockfile) in one commit, the rest in another" >&2
+  exit 1
+}
+
+[ -n "$prose" ] && [ -n "$code" ] && fail
+exit 0
