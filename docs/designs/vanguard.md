@@ -3,7 +3,7 @@
 * **Author:** vanguard-spec working session
 * **Status:** Final design — Step 6 compact assembly (this file is normative)
 * **Date:** 2026-11-03
-* **Process history:** `design_draft.md` (repository root) carries the full drafting log — reversals, review rounds, partially-superseded refinements. This file is the final, single-source version and **wins wherever wording differs**.
+* **Process history:** `design_draft.md` (in `docs/designs/`, next to this file) carries the full drafting log — reversals, review rounds, partially-superseded refinements. This file is the final, single-source version and **wins wherever wording differs**.
 
 --------------------------------------------------------------------------------
 ## Overview
@@ -58,7 +58,7 @@ The proposed solution: a small, deterministic engine that (1) verifies each docu
 
 ## Resolved decisions (ADR summary)
 
-The body is the **normative specification** and owns every semantic; this table is the one-line index. Full process history stays in `design_draft.md`.
+The body is the **normative specification** and owns every semantic; this table is the one-line index. Full process history stays in `design_draft.md` (same directory).
 
 | # | Decision (one line) | Normative home |
 |---|---|---|
