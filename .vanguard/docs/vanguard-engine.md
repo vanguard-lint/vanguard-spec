@@ -32,9 +32,10 @@ the design canon stays authoritative.
   parse and id rules.
 - `internal/lockfile` — canonical lockfile serialization (sorted ids, fixed
   field order), forward-compatible unknown fields, compare-and-swap writes.
-- `internal/provider` — the git provider over go-git (tree OIDs, worktree
-  status, reachability, bounded recovery, range attribution) and the hash
-  provider over plain directories.
+- `internal/provider` — the git provider over go-git (tree OIDs, reachability,
+  bounded recovery, range attribution) and the hash provider over plain
+  directories; worktree status comes from the real git CLI because go-git's
+  own status reports phantom churn under core.autocrlf.
 - `internal/check` — the two-phase check engine, the observe attestation
   engine, bindings, and the output contract.
 
