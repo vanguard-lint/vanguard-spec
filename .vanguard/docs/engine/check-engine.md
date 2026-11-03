@@ -20,6 +20,10 @@ that is identical in JSON and YAML, with exit bits composing by OR.
 - `Load(storeDir, Options)` — reads config, target, provider (git with hash
   fallback), discovery, and the lock; a missing lock is an empty in-memory
   lock with `LockSeen=false`, a corrupt one is fatal [engine.go:Load].
+  Load is also the structure gate: a document without `schema:` is fatal,
+  `none` opts out explicitly, any other name must resolve to a schema file
+  (missing, corrupt, or regex-invalid is fatal), and its x-vanguard
+  violations land in `StructureViolations` [engine.go:Load].
 - `Check(Selection) (*Result, error)` — dispatches to checkAll/checkDoc/
   checkPath/checkRange; unknown mode is a usage error [check.go:Check].
 - `Observe(ObserveRequest) (*Result, error)` — attests documents; per-document
@@ -57,7 +61,14 @@ that is identical in JSON and YAML, with exit bits composing by OR.
   [observe.go:attest].
 - Observe preconditions: HEAD exists, watch scope dirty-free, document clean,
   non-empty scope — each refusal carries its reason and hint; dirty scope
-  refusals also name the offending paths [observe.go:attest].
+  refusals also name the offending paths; a document violating its declared
+  schema is refused (attesting garbage would launder it into fresh)
+  [observe.go:attest].
+- Structure violations surface per document as {rule, file, line, message}
+  with rules structure_missing_section, structure_section_order,
+  structure_duplicate_section, structure_missing_citation,
+  structure_schema_format_mismatch, and always set the fatal bit
+  [check.go:applyStructure].
 - `--all` attests only the currently unobserved set, never stale documents
   [observe.go:Observe].
 - Bindings never interpolate a shell and their results never become
@@ -76,4 +87,7 @@ VANGUARD_TARGET/VANGUARD_DOC/VANGUARD_STORE in the environment
 
 Initless check, observe-then-fresh, code churn, document edit, dirty vs
 stale, observe refusals, lock-lost, review_after, strict gaps, path reverse
-lookup, lock-free range mode, and the JSON envelope shape [check_test.go].
+lookup, lock-free range mode, the JSON envelope shape, and the schema
+enforcement vectors (missing/unknown/corrupt schema fatal, violations as
+fatal bit plus per-document findings, refusal at observe, compliant docs
+clean) [check_test.go].

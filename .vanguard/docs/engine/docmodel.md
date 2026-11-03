@@ -45,6 +45,10 @@ warnings.
   with a split-the-document hint [docmodel.go:parseMarkdownFrontmatter].
 - Frontmatter YAML is strict: duplicate keys, anchors, aliases are fatal
   [docmodel.go:decodeStrict, docmodel.go:rejectYAMLTricks].
+- Whole-document formats (json/yaml) extract the four engine keys strictly
+  while every other top-level field is user-owned content, never an error;
+  duplicate top-level keys and anchors anywhere in the file stay fatal
+  [docmodel.go:parseTopLevelFields].
 - DSL engine fields come only from the leading comment block; fields later in
   the file are invisible [docmodel.go:parseDSLBlock].
 - BOM tolerated and stripped; symlinks never followed; unknown formats
@@ -59,4 +63,5 @@ Reads candidate files and walks the docs root (read-only I/O)
 
 Fail-closed missing frontmatter, happy path order, unknown-format skip,
 duplicate id fatality, id grammar, brace watch expansion, YAML/DSL formats,
-anchor rejection, BOM, and the review_after grammar [docmodel_test.go].
+anchor rejection, BOM, the review_after grammar, and opaque user fields with
+duplicate-key/anchor fatality for whole-document formats [docmodel_test.go].
