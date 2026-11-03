@@ -19,9 +19,9 @@ documented fallback.
 
 ## Interface
 
-- `Provider` — GitMode, HEAD, ScopeHash, Snapshot, Dirty, AnchorReachable,
-  RecoveredAnchor, Attribution, ChangedPathsBetween, FileStatus
-  [provider.go:Provider].
+- `Provider` - GitMode, HEAD, ScopeHash, ScopeHashAt, Snapshot, Dirty,
+  AnchorReachable, RecoveredAnchor, Attribution, ChangedPathsBetween,
+  FileStatus [provider.go:Provider].
 - `OpenGit(root, storeDir)` — roots exactly at root, no upward detection; a
   parent's unrelated repository must never serve as the target
   [provider.go:OpenGit].
@@ -47,8 +47,11 @@ documented fallback.
 - Worktree status comes from `git status --porcelain -z
   --untracked-files=all` [provider.go:porcelainStatus]; go-git status is the
   fallback only [provider.go:worktreeStatus].
-- The store directory is filtered out of every hash, walk, dirty, and
-  attribution computation [provider.go:walkTreeInto].
+- The store directory is filtered out of the enumerated and repository-wide
+  hash strategies, the walk, dirty detection, and attribution
+  [provider.go:walkTreeInto]; the Subtree strategy is the exception — it
+  hashes the target directory's own tree OID with no store exclusion
+  [provider.go:subtreeOID].
 - Unborn repositories report HEAD as `""`, not an error [provider.go:HEAD].
 - A missing subtree falls back to the deterministic empty-tree OID
   [provider.go:subtreeOID].
