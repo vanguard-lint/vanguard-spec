@@ -27,7 +27,7 @@ refs:      # optional
   - **Harness adapters only**: the harness id — `claude`, `codex`,
     `opencode`, `deepseek`, or the adapter's folder name.
   - **Component-local**: `skill`, `agent`, `command`, `rule`, `spec`,
-    `resource`, `test`, `infra`, `site`.
+    `resource`, `test`, `infra`, `site`, `website`, `readme`.
   - A change spanning 2+ harnesses takes **no scope** and lists affected
     harnesses under `change:` in the body.
 

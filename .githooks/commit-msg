@@ -1,0 +1,40 @@
+#!/bin/sh
+# commit-msg hook — validates the commit message against
+# .vanguard/rules/git-commit-message.md (subject-level checks).
+# Enable once per clone:  git config core.hooksPath .githooks
+
+msg_file="$1"
+
+# when git invokes this hook, its usr/bin (grep, sed, wc) is already on PATH;
+# keep that true for manual invocations too
+case ":$PATH:" in
+  *:/usr/bin:*) ;;
+  *) PATH="/usr/bin:$PATH" ;;
+esac
+
+subject=$(head -n 1 "$msg_file")
+
+# skip merge commits
+case "$subject" in
+  "Merge "*) exit 0 ;;
+esac
+
+types='spec|feat|fix|test|refactor|perf|build|ci|docs|style|chore|revert'
+scopes='claude|codex|opencode|deepseek|skill|agent|command|rule|spec|resource|test|infra|site|website|readme'
+
+fail() {
+  echo "commit message rejected by .vanguard/rules/git-commit-message.md:" >&2
+  echo "  $1" >&2
+  echo "expected: <type>(<scope>)?: <subject — imperative, lowercase, <=72 chars>" >&2
+  exit 1
+}
+
+echo "$subject" | grep -Eq "^($types)(\(($scopes)\))?: [a-z0-9].*$" \
+  || fail "subject does not match <type>(<scope>)?: <lowercase subject>"
+
+len=$(echo -n "$subject" | wc -c)
+[ "$len" -le 72 ] || fail "subject is $len chars (limit 72)"
+
+echo "$subject" | grep -Eq '\.$' && fail "subject must not end with a period"
+
+exit 0

@@ -1,0 +1,33 @@
+# Enforces .vanguard/rules/git-commit-message.md on every pull request and
+# push to main. This check is required by branch protection on main.
+name: commit-lint
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: commit-lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Validate commit messages
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            base="${{ github.event.pull_request.base.sha }}"
+            head="${{ github.event.pull_request.head.sha }}"
+            python scripts/commitlint.py "$base" "$head"
+          else
+            if [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
+              echo "new branch push — nothing to range against"
+              exit 0
+            fi
+            python scripts/commitlint.py "${{ github.event.before }}" "${{ github.event.after }}"
+          fi

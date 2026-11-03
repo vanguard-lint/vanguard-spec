@@ -34,10 +34,22 @@ browser or serve the folder with any file server. No build step.
 
 ## Commit messages
 
-Follow Conventional Commits: `type(scope): subject` — for example
-`feat(check): report unobserved documents in the json envelope` or
-`docs(design): specify the dirty verdict`. Keep the subject imperative and
-under 72 characters.
+Follow the repository rule (`.vanguard/rules/git-commit-message.md`):
+`type(scope): subject` — for example `feat(check): report unobserved
+documents in the json envelope` or `docs(design): specify the dirty
+verdict`. Keep the subject imperative and under 72 characters.
+
+Every commit is machine-checked:
+
+- Locally, enable the hook once per clone:
+
+  ```shell
+  git config core.hooksPath .githooks
+  ```
+
+- On GitHub, the `commit-lint` check validates every commit in a pull
+  request (types, scopes, subject shape, body-required rules, `break:`
+  → `refs:`); branch protection on `main` treats it as required.
 
 ## Pull requests
 
