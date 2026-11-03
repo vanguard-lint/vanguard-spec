@@ -26,9 +26,11 @@ that is identical in JSON and YAML, with exit bits composing by OR.
   violations land in `StructureViolations` [engine.go:Load].
 - `Check(Selection) (*Result, error)` — dispatches to checkAll/checkDoc/
   checkPath/checkRange; unknown mode is a usage error [check.go:Check].
-- `Observe(ObserveRequest) (*Result, error)` — attests documents; per-document
+- `Observe(ObserveRequest) (*Result, error)` - attests documents; per-document
   refusals; a compare-and-swap conflict aborts the whole run with no partial
-  write [observe.go:Observe].
+  write [observe.go:Observe]. `Prune` on the request is a standalone gc pass
+  that drops lock entries for ids no longer in discovery and refuses to
+  combine with a doc id or `--all` [observe.go:prune].
 - `Result{Envelope, Fatals, Refusals}` — one run's envelope plus run-level
   reports [check.go:Result]; `Selection` names the run [check.go:Selection],
   `ObserveRequest` the attestation [observe.go:ObserveRequest].
