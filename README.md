@@ -2,9 +2,7 @@
   <img src="resources/vanguard-logo.svg" width="96" alt="vanguard-spec logo">
 </p>
 
-<h1 align="center">vanguard-spec</h1>
-
-<p align="center">Lock down architectural invariants before line one.</p>
+<h1 align="center">vanguard-spec<br><sub>Lock down architectural invariants before line one.</sub></h1>
 
 <br>
 
