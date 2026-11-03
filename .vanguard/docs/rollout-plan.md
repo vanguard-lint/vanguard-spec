@@ -1,5 +1,6 @@
 ---
 id: rollout-plan
+schema: none
 watches:
   paths:
     - "docs/designs/**"

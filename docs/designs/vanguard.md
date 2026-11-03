@@ -70,7 +70,7 @@ The body is the **normative specification** and owns every semantic; this table 
 | D6 | Bindings are transient — executed only under `--run-bindings`; outcome never mapped onto staleness (bit 16) | Tests bindings |
 | D7 | Check purity: `check` never writes; `observe` is the only lock writer | Anchoring (lock write rules) |
 | D8 | **Stored anchor** in the committed lock, advanced only by observe; three-path resolution survives squash-merge | Anchoring (anchor resolution) |
-| D9 | Formats: markdown (goldmark + closed rule vocabulary), json/yaml (JSON Schema 2020-12), dsl (leading comment block); `schema:` optional for every format; agents learn via `--help` + actionable output (NG8) | Structure schemas; Document model |
+| D9 | Formats: markdown (goldmark + closed rule vocabulary), json/yaml (JSON Schema 2020-12), dsl (leading comment block); `schema:` mandatory for every format — `none` is the explicit opt-out, an omitted field is a load-time fatal (amended: optional bindings left a silent backdoor, violating G3 fail-closed); agents learn via `--help` + actionable output (NG8) | Structure schemas; Document model |
 | D10 | Tool provisioning: pinned `url`+`sha256` fetch-and-verify only; aqua registry cut from v1, recorded post-v1 behind the `Provisioner` seam | Tool provisioning |
 | D11 | Single committed state file `vanguard.lock` (no `state/`, no `observations.jsonl`), committed like `go.sum` | Anchoring (lock identity) |
 | D12 | `observe` restored as the standalone attestation command; per-document status choice **Stale > Dirty > Fresh**; a fatal is a run-level bit, never a status | Anchoring; Output contract |

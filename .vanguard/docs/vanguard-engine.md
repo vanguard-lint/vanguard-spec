@@ -1,5 +1,6 @@
 ---
 id: vanguard-engine
+schema: none
 watches:
   paths:
     - "vanguard/**/*.go"
