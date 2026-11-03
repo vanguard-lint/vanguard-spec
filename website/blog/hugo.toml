@@ -2,7 +2,7 @@ baseURL = 'https://vanguard-lint.github.io/blog/'
 title = 'Vanguard Blog'
 
 # The blog is rendered standalone, but it borrows the main site's shell
-# (top bar, CSS) the same way the osv.dev app shell wraps its blog.
+# (top bar, CSS) so the rendered pages look identical to the rest of the site.
 [params]
   homeURL = 'https://vanguard-lint.github.io/'
   siteRoot = 'https://vanguard-lint.github.io'

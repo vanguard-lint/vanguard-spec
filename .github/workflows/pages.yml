@@ -24,8 +24,8 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
-      # The blog (website/blog/) is a Hugo site, following the osv.dev blog
-      # structure. Render it and serve the output in its place at /blog/.
+      # The blog (website/blog/) is a Hugo site. Render it and serve the
+      # output in its place at /blog/.
       - uses: peaceiris/actions-hugo@v3
         with:
           hugo-version: '0.169.0'
