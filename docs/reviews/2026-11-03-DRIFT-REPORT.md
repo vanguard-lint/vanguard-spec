@@ -162,3 +162,173 @@ comparison, and set comparison of node coverage.
   and the layout map in vanguard-engine match reality. quality-plan's
   status line ("DRAFT, no adversarial round run") remains accurate for the
   plan itself.
+## Store-wide goldfish drift round (2026-11-03, independent subagent verification)
+
+Five independent cold-start reviewers (no prior audit context) re-verified all
+23 store documents against the code. Their findings supersede the selective
+audit above where the two disagree.
+
+## check-engine
+
+- Major: the `--prune` pass is undocumented. `Engine.prune` (observe.go) drops
+  lock entries for ids no longer in discovery, writes via `lockfile.Save`,
+  refuses combination with a doc id or `--all`, and populates
+  `Envelope.Pruned` - none of the prune semantics appear in the contract.
+- Nit: `BindingsFor` marks an unresolvable reference as `failed`
+  (ExitCode -1, command "(unresolved)") without execution - pending is not
+  the only not-run notation.
+- Nit: the bindings-pending block in `evaluate` sits after the early returns,
+  so unobserved and unwatched documents never receive the pending notation.
+- Nit: `Result.Fatals` is declared and documented as run-level reports but is
+  never populated anywhere in the repo.
+- Nit: `evaluateObserved` reclassifies a document as unobserved when the lock
+  entry kind does not fit the current provider mode ("target mode changed"
+  hint) - absent from the invariants list.
+- Nit: `checkPath` omits fresh matches with no violations, includes dirty and
+  violation-carrying matches, and appends a "run a full vanguard check" hint
+  on unobserved matches - none of this reporting contract is described.
+
+## lockfile
+
+- Nit: the doc quotes the CAS abort message as "lock changed during observe
+  -- re-run" with an em dash; the code emits an ASCII hyphen (lockfile.go
+  Save). Grep for the documented form will not match.
+- Nit: `acquireCAS` also has a 2s bounded wait (casWait) with a distinct
+  error ("another vanguard process holds the CAS") - undocumented next to
+  the 10s steal.
+- Nit: Side effects omits the `<path>.cas` token file that Save creates and
+  removes.
+- Nit: "an unknown major fails closed" is imprecise - Parse rejects any
+  version not exactly 1, not merely unknown majors.
+
+## pathmatch
+
+- Major: citation drift on rejection sites. The Invariants attribute all
+  rejections to `[pathmatch.go:validate]` (and `[pathmatch.go:classEnd]` for
+  both `[!` and `[]` rules); in code, negation `!` and trailing backslash are
+  rejected in `Canonical`, brace errors in `closingBrace`/`expandBraces`, and
+  `classEnd` implements only the `[]` rule. The behaviors exist; the cited
+  symbol locations are wrong.
+- Nit: `hang_test.go` (bounded-expansion harness, adversarial-glob corpus,
+  legal-expansion-bounded test) is absent from the Verification section.
+
+## provider
+
+- Major: the store-filter invariant does not hold for the Subtree strategy.
+  The doc claims the store directory is filtered out of every hash, walk,
+  dirty and attribution computation; `ScopeHash`/`ScopeHashAt` call
+  `subtreeOID` with no store filter (provider.go). A `.vanguard/**` glob
+  classifies as Subtree and its hash is the store directory's own tree OID.
+- Major: `ScopeHashAt` (exported, used by the recovery walk) is missing from
+  the Interface section.
+- Nit: hash-mode error model incomplete: `ChangedPathsBetween` returns an
+  explicit error; `AnchorReachable`/`RecoveredAnchor` silently return
+  false/"" - none documented.
+- Nit: `Snapshot` has dual semantics by mode (raw git blob SHAs in git mode
+  vs "sha256:"+normalized hashes in hash mode) - undocumented distinction.
+- Nit: `HashProvider.ScopeHash` hardcodes mode "100644" for every file.
+- Nit: `perf_test.go` behavioral tests (golden determinism, overlap-glob
+  dedup, dirty budget) absent from Verification.
+
+## config
+
+- Nit: the fail-closed enumeration omits duplicate-key rejection (enforced by
+  the strict decode and claimed in the package comment, absent from the doc).
+
+## docmodel
+
+- Minor: `FrontmatterCap` also applies to entire JSON/YAML documents
+  ("document exceeds 256 KiB - split the document"); the doc documents the
+  cap only for markdown frontmatter.
+- Minor: DSL documents cannot express `watches` at all - `isEngineKey`
+  accepts the key (suppressing the not-found error) while `assignField` has
+  no case for it, so it is silently dropped; `isSimpleValue` also rejects
+  braces/brackets, making nested globs impossible. Both constraints
+  undocumented.
+- Nit: markdown frontmatter also accepts `...` as the closing delimiter, not
+  only `---`.
+- Nit: a non-scalar top-level mapping key is a fatal - undocumented.
+
+## duration
+
+- Nit: `Parse` trims surrounding whitespace before matching, so " 7 " parses
+  as 7d - undocumented leniency in a doc framed as a strict grammar.
+
+## hashnorm
+
+- No drift detected.
+
+## scope
+
+- No drift detected.
+
+## structure
+
+- Nit: the format-mismatch check compares the declared `format` parameter
+  against the profile's format, never the body; it also silently skips when
+  either side is empty - the "non-markdown body" wording misleads.
+- Nit: missing-required-section violations use sentinel `Line: 1` although
+  `Violation.Line` is described as pointing at the offending heading.
+
+## command-surface
+
+- Major: the run-bindings invariant added earlier today is wrong as worded.
+  It claims `--run-bindings` is "refused in range mode"; the code silently
+  drops the flag in range mode (no error, no bit, no hint). The reviewer
+  caught that the doc fix was written without a matching code change.
+- Major: `--max-recovery-walk` is presented as a working invariant but is a
+  no-op: `Options.MaxRecoveryWalk` is normalized in `engine.Load` and never
+  stored on the Engine; the effective bound comes from
+  `Selection.MaxRecoveryWalk`, which the CLI never sets (`_ = maxRecovery`
+  at main.go). The flag always leaves the fallback 1000 in force.
+- Nit: the cobra `--version` flag (ldflags-injected) is undocumented;
+  `--to` appears only inside the `--strict` invariant, never in Interface.
+
+## vanguard-engine
+
+- Major: the linked contract list has 10 entries; `.vanguard/docs/engine/`
+  holds 11 - `structure.md` is not linked, and `internal/structure` is
+  missing from the Layout section entirely.
+- Major: the "Not yet implemented" section claims the structure enforcement
+  layer is a later milestone, but the x-vanguard markdown structure
+  enforcement (required sections, order, duplicates, citation patterns) is
+  implemented, load-time fatal, and wired in engine.go. What remains is
+  narrower: goldmark AST rules, JSON Schema 2020-12, resource caps.
+- Major: the doc says the quality artifacts live under `quality/` including
+  "the quality plan itself", but `quality-plan.md` sits at
+  `.vanguard/docs/quality-plan.md`, not under `quality/`.
+- Nit: the schemas list names 4 files; 6 exist (quality-result and
+  design-canon are unnamed).
+
+## quality-plan
+
+- No drift detected.
+
+## rollout-plan
+
+- No drift detected.
+
+## design/vanguard.md (canon mirror)
+
+- Nit: after stripping the frontmatter, the mirror body retains one extra
+  blank line (single LF) between the closing delimiter and the first
+  heading; all other 154,415 bytes are identical. Note: the earlier manual
+  audit used a TrimStart-normalized comparison and reported an exact match;
+  the raw-byte comparison found the stray LF.
+
+## results.yaml / criteria-tree.yaml
+
+- No drift detected. Node id sets identical 1:1 (100/100); all verdict
+  values within the allowed vocabulary (pass 51, partial 33, not_run 13,
+  blocked 3, fail 0); all 30 parent roll-ups consistent with children.
+
+## Binding cards
+
+- No drift detected. 8 cards, all fields present, all watched paths resolve.
+- Nit: the canon mirror card body never names its watched file
+  (`docs/designs/vanguard.md`) outside the frontmatter.
+
+## Schemas
+
+- No drift detected. All 6 schema files parse as valid JSON with `$schema`
+  and `type`.
