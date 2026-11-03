@@ -83,6 +83,27 @@ change:
 test gap: eval scenarios extend in follow-up commit
 ```
 
+## One kind of change per commit
+
+A commit carries **prose or code, never both**:
+
+- **Prose side** — every `*.md` file, plus `.vanguard/vanguard.lock` (the
+  attestation record of the markdown store, which must ride with the doc it
+  attests).
+- **Code side** — everything else: source, tests, workflows, config, scripts.
+
+Splitting keeps review honest: a doc change is judged as writing, a code
+change as behavior, and neither hides inside the other's diff. The pre-commit
+hook (`.githooks/pre-commit`) and `scripts/commitlint.py` (CI) both reject a
+commit whose files span the two sides.
+
+Typical split for one logical change:
+
+```
+spec(engine): require the recovery walk bound in the envelope   # md + lock
+feat(engine): wire the recovery walk bound into the engine      # go + tests
+```
+
 ## break / change
 
 - **break** — anything previously produced or installed that stops working:
