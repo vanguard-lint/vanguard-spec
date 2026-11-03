@@ -38,6 +38,9 @@ documented fallback.
   [provider.go:GitProvider.Attribution].
 - `OpenHash(root, storeDir)` — hash-mode provider; `Dirty` is always empty,
   `Attribution` is an explicit error [provider.go:OpenHash].
+- `GitProvider` / `HashProvider` — the two `Provider` implementations over a
+  git object database and a plain directory respectively
+  [provider.go:GitProvider, provider.go:HashProvider].
 
 ## Invariants
 
@@ -62,6 +65,7 @@ Executes the external git binary for status (read-only, no files written)
 
 ## Verification
 
-HEAD resolution including unborn, subtree-vs-enumerated agreement, hash
-reaction to change, dirty detection, reachability, attribution, and
+HEAD resolution including unborn, per-strategy scope hashing (subtree vs
+enumerated) with cross-scope difference and determinism, hash reaction to
+change, dirty detection, reachability, attribution, and
 hash-mode snapshot behavior [provider_test.go].

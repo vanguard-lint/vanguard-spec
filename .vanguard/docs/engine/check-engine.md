@@ -25,14 +25,20 @@ that is identical in JSON and YAML, with exit bits composing by OR.
 - `Observe(ObserveRequest) (*Result, error)` — attests documents; per-document
   refusals; a compare-and-swap conflict aborts the whole run with no partial
   write [observe.go:Observe].
+- `Result{Envelope, Fatals, Refusals}` — one run's envelope plus run-level
+  reports [check.go:Result]; `Selection` names the run [check.go:Selection],
+  `ObserveRequest` the attestation [observe.go:ObserveRequest].
+- Exit bits (compose by OR): fatal=1, stale=2, dirty=4, gaps=8 (`--strict`
+  only), binding_failed=16, affected_in_range=32 [envelope.go:BitStale].
 - `ApplyBindings(env)` / `RunBindings(docID, names)` — pending notation for
   referenced-but-not-run bindings; direct-argv execution of allowlisted
-  commands, exit code is the only decision input [bindings.go:RunBindings].
+  commands, exit code is the only decision input
+  [bindings.go:RunBindings, check.go:ApplyBindings].
 - `Render(env, format)` — json, yaml, or text; unknown format is a usage
   error [render.go:Render].
 - `Envelope` — mode, schema, exit_bits, documents[], unwatched[],
-  unobserved[], affected_in_range[], lock, refused[], pruned[]
-  [envelope.go:Envelope].
+  unobserved[], affected_in_range[], lock_lost, hints[], lock, refused[],
+  pruned[] [envelope.go:Envelope].
 
 ## Invariants
 
@@ -50,8 +56,8 @@ that is identical in JSON and YAML, with exit bits composing by OR.
   refused; an `--at` beyond clock_skew_tolerance in the future is refused
   [observe.go:attest].
 - Observe preconditions: HEAD exists, watch scope dirty-free, document clean,
-  non-empty scope — each refusal carries its reason and offending paths
-  [observe.go:attest].
+  non-empty scope — each refusal carries its reason and hint; dirty scope
+  refusals also name the offending paths [observe.go:attest].
 - `--all` attests only the currently unobserved set, never stale documents
   [observe.go:Observe].
 - Bindings never interpolate a shell and their results never become

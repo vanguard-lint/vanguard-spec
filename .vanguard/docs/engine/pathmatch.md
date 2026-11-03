@@ -1,5 +1,6 @@
 ---
 id: pathmatch
+schema: package-contract
 watches:
   paths:
     - "vanguard/internal/pathmatch/**/*.go"

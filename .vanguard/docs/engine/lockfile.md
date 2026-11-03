@@ -1,5 +1,6 @@
 ---
 id: lockfile
+schema: package-contract
 watches:
   paths:
     - "vanguard/internal/lockfile/**/*.go"
@@ -25,6 +26,10 @@ other.
   content_hash only [lockfile.go:Entry].
 - `Load(path) (*Lock, []byte, error)` — parse plus the exact on-disk bytes
   for the compare-and-swap [lockfile.go:Load].
+- `Lock{Version, Docs}` — the parsed lock: schema version and the id →
+  `Entry` map [lockfile.go:Lock].
+- `Parse(raw) (*Lock, error)` — decode lock bytes; unknown version fails
+  closed [lockfile.go:Parse].
 - `Serialize(lock) []byte` — the canonical, byte-deterministic form
   [lockfile.go:Serialize].
 - `Save(path, lock, captured) error` — CAS write: captured nil requires the

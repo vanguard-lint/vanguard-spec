@@ -1,5 +1,6 @@
 ---
 id: docmodel
+schema: package-contract
 watches:
   paths:
     - "vanguard/internal/docmodel/**/*.go"
@@ -24,6 +25,11 @@ warnings.
 - `Doc{ID, Schema, Watches, Bindings, RelPath, Format, Raw, PathGlobs,
   ReviewAfterSeconds}` — engine fields only; everything else in a document is
   user-defined and opaque [docmodel.go:Doc].
+- `Watches{Paths, ReviewAfter}` — the staleness sources: raw watch globs
+  (canonicalized into `PathGlobs`) and the declared `review_after`
+  [docmodel.go:Watches].
+- `Warning{File, Reason}` — advisory discovery note for skipped files
+  [docmodel.go:Warning].
 - `FrontmatterCap` = 256 KiB, `MaxIDLen` = 128 [docmodel.go:FrontmatterCap].
 
 ## Invariants

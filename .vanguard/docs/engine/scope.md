@@ -1,5 +1,6 @@
 ---
 id: scope
+schema: package-contract
 watches:
   paths:
     - "vanguard/internal/scope/**/*.go"
@@ -31,6 +32,7 @@ kind-prefixed git tree OID (subtree) or the entry-list hash
   excluded by name [scope.go:HashRepositoryWide].
 - `Combine(pairs) string` — per-glob results into the document scope hash,
   sorted by canonical glob bytes [scope.go:Combine].
+- `Pair{Glob, Hash}` — one per-glob result fed to `Combine` [scope.go:Pair].
 - `FilterStore(entries, storeDir)` — prefix-based exclusion of the store
   directory [scope.go:FilterStore].
 - `SameKind(a, b) bool` — kind-prefix comparability; a mismatch means globs

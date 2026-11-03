@@ -1,5 +1,6 @@
 ---
 id: duration
+schema: package-contract
 watches:
   paths:
     - "vanguard/internal/duration/**/*.go"

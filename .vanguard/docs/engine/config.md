@@ -1,5 +1,6 @@
 ---
 id: config
+schema: package-contract
 watches:
   paths:
     - "vanguard/internal/config/**/*.go"

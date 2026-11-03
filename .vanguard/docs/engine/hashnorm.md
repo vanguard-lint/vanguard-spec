@@ -1,5 +1,6 @@
 ---
 id: hashnorm
+schema: package-contract
 watches:
   paths:
     - "vanguard/internal/hashnorm/**/*.go"

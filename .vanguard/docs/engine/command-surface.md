@@ -26,6 +26,9 @@ this package is wiring only.
   (RFC3339), `--format` [main.go:observeCmd].
 - `emit(env, format, output)` — renders to `--output` or stdout, then exits
   with `env.ExitBits` when non-zero [main.go:emit].
+- `resolvePathArg(targetDir, arg)` — resolves the `--path` argument against
+  the target root: absolute paths must land inside it, `..` segments
+  rejected; reports whether the path is a directory [main.go:resolvePathArg].
 
 ## Invariants
 
