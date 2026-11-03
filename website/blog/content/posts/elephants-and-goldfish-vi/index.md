@@ -2,7 +2,7 @@
 title: "Tài liệu của bạn cũng là một con voi. Vấn đề là nó nhớ cả những điều đã sai."
 date: 2026-11-03T09:00:00+07:00
 draft: false
-author: Huy Nguyễn Việt
+author: Huy Nguyen
 ---
 Tôi bắt đầu với một lời thú nhận: tôi đã mệt mỏi với phát triển hướng đặc tả (spec-driven development).
 <!--more-->

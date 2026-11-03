@@ -2,7 +2,7 @@
 title: "Your documents are elephants too. They just remember things that stopped being true."
 date: 2026-11-03T09:00:00+07:00
 draft: false
-author: Huy Nguyễn Việt
+author: Huy Nguyen
 ---
 Let me start with a confession: I got tired of spec-driven development.
 <!--more-->
