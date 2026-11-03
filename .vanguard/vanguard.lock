@@ -1,6 +1,13 @@
 {
   "version": 1,
   "docs": {
+    "rollout-plan": {
+      "anchor": "da174f7dcf367ea1ec28c89ada1be8e30d9023f5",
+      "observed_at": "2026-11-03T08:19:30Z",
+      "scope_tree_hash": "sha256:67534befd19ccf1d614ec1d391ab871359677d7bce4aeb7f6a34353409f668f7",
+      "scope_file_count": 5,
+      "content_hash": "sha256:9a7bc12b3a24185e5f064c8484df2cbd78fb5205a7aab2ab5d6dcbb2ed820662"
+    },
     "vanguard-engine": {
       "anchor": "e35ae03f6bc09682cec4d764d5d4652bb6bd4acf",
       "observed_at": "2026-11-03T07:56:22Z",
