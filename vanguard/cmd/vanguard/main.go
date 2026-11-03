@@ -129,7 +129,11 @@ func checkCmd() *cobra.Command {
 				mode, sel.From, sel.To = check.ModeRange, fromRef, toRef
 			case pathArg != "":
 				mode = check.ModePath
-				sel.Path, sel.PathIsDir = resolvePathArg(engine.TargetDir, pathArg)
+				p, isDir, rerr := resolvePathArg(engine.TargetDir, pathArg)
+				if rerr != nil {
+					return rerr
+				}
+				sel.Path, sel.PathIsDir = p, isDir
 			case len(args) == 1:
 				mode, sel.DocID = check.ModeDoc, args[0]
 			default:
@@ -211,19 +215,23 @@ func observeCmd() *cobra.Command {
 
 // resolvePathArg resolves the --path argument against the target root;
 // absolute paths must land inside it; .. segments are rejected.
-func resolvePathArg(targetDir, arg string) (string, bool) {
+func resolvePathArg(targetDir, arg string) (string, bool, error) {
 	rel := arg
 	if filepath.IsAbs(arg) {
 		if r, err := filepath.Rel(targetDir, arg); err == nil && !filepath.IsAbs(r) && filepath.IsLocal(r) {
 			rel = r
 		} else {
-			return arg, false
+			return arg, false, fmt.Errorf("--path must land inside the target: %s", arg)
 		}
+	} else if !filepath.IsLocal(arg) {
+		// A relative path escaping the target (.. segments) is rejected —
+		// the contract promises traversal never reaches the engine.
+		return arg, false, fmt.Errorf("--path must stay inside the target: %s", arg)
 	}
 	abs := filepath.Join(targetDir, rel)
 	fi, err := os.Stat(abs)
 	isDir := err == nil && fi.IsDir()
-	return filepath.ToSlash(filepath.Clean(rel)), isDir
+	return filepath.ToSlash(filepath.Clean(rel)), isDir, nil
 }
 
 // emit renders and writes the envelope, then exits with the composed bits.
