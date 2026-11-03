@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="resources/readme-header-dark.svg">
-    <img src="resources/readme-header-light.svg" alt="vanguard-spec — lock down architectural invariants before line one" width="480">
+    <source media="(prefers-color-scheme: dark)" srcset="resources/readme-header-dark.svg?v=2">
+    <img src="resources/readme-header-light.svg?v=2" alt="vanguard-spec — lock down architectural invariants before line one" width="480">
   </picture>
 </p>
 
@@ -10,8 +10,8 @@
 Vanguard is a standalone command-line tool that keeps specification documents honest. It manages a project's spec documents (markdown, JSON, YAML, and DSL dialects such as C4), verifies that each document follows the structure its owner declared, and answers one question deterministically:
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/core-question-dark.svg">
-  <img alt="Which documents have gone stale — and what exactly made them stale." src="docs/assets/core-question-light.svg">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/core-question-dark.svg?v=2">
+  <img alt="Which documents have gone stale — and what exactly made them stale." src="docs/assets/core-question-light.svg?v=2">
 </picture>
 
 ## Principles
