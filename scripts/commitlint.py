@@ -20,7 +20,7 @@ TYPES = frozenset(
     "spec feat fix test refactor perf build ci docs style chore revert".split()
 )
 SCOPES = frozenset(
-    "claude codex opencode deepseek "
+    "claude codex opencode deepseek engine "
     "skill agent command rule spec resource test infra site website readme".split()
 )
 SUBJECT_RE = re.compile(r"^([a-z]+)(?:\(([a-z0-9-]+)\))?: (\S.*)$")
