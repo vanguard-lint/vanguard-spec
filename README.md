@@ -6,7 +6,8 @@ A spec-driven verification harness that locks down architectural invariants befo
 
 ## Principles
 
-- Spec first, code later.
-- Verification is computed, never judged.
-- Agents are first-class consumers.
-- EGM drives the workflow.
+- **Fresh only when attested** — staleness clears by a human `observe`, committed to git.
+- **Never silently fresh** — a lost lock, a broken link, a bad file: always red.
+- **One deterministic answer** — which docs are stale, and which commit did it.
+- **Zero opinions** — the engine owns only identity, watches, and the lock.
+- **Machine-native output** — JSON envelope and exit bits for CI and agents.
