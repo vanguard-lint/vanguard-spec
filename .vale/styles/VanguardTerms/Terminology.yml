@@ -1,0 +1,15 @@
+extends: existence
+level: error
+ignorecase: true
+vocab: false
+message: "Non-standard term '%s' — see .vanguard/glossary/glossary.md for the project's vocabulary."
+tokens:
+  - '\\block file\b'
+  - '\\block-file\b'
+  - '\\brepo\b'
+  - '\\bwatcher\b'
+  - '\\bexit code bits\b'
+  - '\\breturn-code mask\b'
+  - '\\bscopehash\b'
+  - '\\bweb site\b'
+  - '\\bspec doc\b'

@@ -105,7 +105,7 @@ files**, any `feat`, and any cross-harness commit.
 2. **Harness dimension explicit** — harness-scoped commits match upstream
    EGM practice (`feat(claude): ...`) and make adapter drift auditable.
 3. **Evidence rides with the change** — behavioral edits without scenario
-   updates are called out instead of silently skipped; ties the repo to its
+   updates are called out instead of silently skipped; ties the repository to its
    "lock through spec" philosophy.
 
 ## Examples
@@ -140,7 +140,7 @@ Skill behavioral change with evidence:
 spec(skill): gate finalization on directory probe step
 
 change:
-- draft skill must detect repo layout before writing docs/designs
+- draft skill must detect repository layout before writing docs/designs
 test:
 - scenario directory_finalize_modal_selection updated
 ```

@@ -1,0 +1,24 @@
+# Terms with a required spelling — Vale.Terms enforces the exact case below
+# and offers it as the fix. Mirrors .vanguard/glossary/glossary.md.
+# Note: json/yaml stay off this list — lowercase is correct when they name
+# envelope format identifiers.
+(?i)vanguard
+vanguard.lock
+vanguard.yaml
+vanguard check
+vanguard observe
+vanguard init
+(?i)revwalk
+(?i)blobless
+go-git
+(?i)exit bitmask
+(?i)scope tree hash
+(?i)subtree oid
+review_after
+run-bindings
+(?i)autocrlf
+(?i)unwatched
+(?i)unobserved
+EGM
+GitHub
+CLI

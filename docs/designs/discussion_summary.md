@@ -1,12 +1,12 @@
 # Vanguard — Discussion Summary
 
 * **Date:** 2026-11-02
-* **Origin:** Interactive brainstorming session (egm-brainstorm workflow)
-* **Purpose:** Predecessor context for `/egm-draft`. Captures the anchored concept, decisions made, alternatives rejected, and open questions.
+* **Origin:** Interactive brainstorming session (EGM-brainstorm workflow)
+* **Purpose:** Predecessor context for `/EGM-draft`. Captures the anchored concept, decisions made, alternatives rejected, and open questions.
 
 ## 1. Original Idea and How It Evolved
 
-The session started with an ambitious concept: *a spec-driven verification harness that locks down architectural invariants before code is written*. Specs would live in `.vanguard/` inside the repo, an engine would enforce spec-first development, AST-based drift detection would block commits that introduce undeclared public functions or external calls, and a 5-step bug-fix loop would tie spec changes to the Git DAG.
+The session started with an ambitious concept: *a spec-driven verification harness that locks down architectural invariants before code is written*. Specs would live in `.vanguard/` inside the repository, an engine would enforce spec-first development, AST-based drift detection would block commits that introduce undeclared public functions or external calls, and a 5-step bug-fix loop would tie spec changes to the Git DAG.
 
 Through stress-testing, the scope was deliberately narrowed and re-shaped. The final concept is:
 
@@ -17,7 +17,7 @@ Through stress-testing, the scope was deliberately narrowed and re-shaped. The f
 | Original ambition | Final v1 decision |
 |---|---|
 | AST analysis of source code, `exposes`/`depends-on` vocabulary, PR gates, fix loop tied to Git DAG | **Cut for v1.** Deferred; may return as later phases. |
-| Docs inside the repo (`.vanguard/`), version binding via git tags/commits | **Reversed.** Vanguard sits outside the codebase as a separate ledger; git is an optional data source, not a deployment requirement. |
+| Docs inside the repository (`.vanguard/`), version binding via git tags/commits | **Reversed.** Vanguard sits outside the codebase as a separate ledger; git is an optional data source, not a deployment requirement. |
 | Explicit anchors (doc bound to tag/commit, re-anchor operation) | **Replaced by implicit anchoring** via observation comparison. |
 | Frozen contract states + amendment flow | **Cut.** Out of v1 scope. |
 
@@ -54,12 +54,12 @@ Vanguard reads `.git` directly through an embedded library (gitoxide / libgit2 /
 
 ### D6 — Positioning against existing tools
 - **OpenSpec** (73k stars): owns the plan→apply→archive *workflow* for AI assistants; specs are fluid, no frozen state, no continuous verification. Vanguard does not compete here.
-- **EGM** (`egm-drift-report`): LLM-based, pull-only (`disable-model-invocation: true`), non-deterministic, no ledger. Catches *semantic* drift that structural checks cannot express — kept as a slow-cadence complementary sensor, not replaced.
+- **EGM** (`EGM-drift-report`): LLM-based, pull-only (`disable-model-invocation: true`), non-deterministic, no ledger. Catches *semantic* drift that structural checks cannot express — kept as a slow-cadence complementary sensor, not replaced.
 - Vanguard is the **sensor + ledger**: deterministic per-invocation checks, machine-readable JSON output (`{doc, watch_type, changed_paths, introducing_commits[]}`) that agents and other tools consume.
 
 ## 3. Alternatives Rejected (with reasons)
 
-1. **Docs-in-repo with git-based version binding (OpenSpec-style same-commit co-evolution)** — rejected: spec and code change in the same commit, so verification against HEAD is always green; staleness becomes ritual. Also conflicts with the multi-codebase, ledger-outside requirement.
+1. **Docs-in-repository with git-based version binding (OpenSpec-style same-commit co-evolution)** — rejected: spec and code change in the same commit, so verification against HEAD is always green; staleness becomes ritual. Also conflicts with the multi-codebase, ledger-outside requirement.
 2. **Explicit anchors (tag/commit binding + re-anchor command)** — rejected as default: stale flags can never clear without a re-anchor operation, adding bookkeeping the user explicitly did not want. Retained as an optional `verified` field if certification semantics are needed later.
 3. **Reusing osv.dev / osv-scanner git analysis** — rejected: category mismatch (vulnerability matching, not path churn); plain git plumbing does the job.
 4. **Requiring the git CLI** — rejected: user requires a self-contained CLI; embedding a git library achieves the same data access.
@@ -78,4 +78,4 @@ Vanguard reads `.git` directly through an embedded library (gitoxide / libgit2 /
 - No AST analysis of source code; no `exposes`/`depends-on` machine vocabulary.
 - No CI PR gates, no frozen contract states, no amendment workflow.
 - No LLM-based semantic drift detection inside the engine core (stays deterministic; external LLM scanners may consume JSON output).
-- No team synchronization story for the ledger in v1 (single-machine file; ledger-in-own-repo is a future step).
+- No team synchronization story for the ledger in v1 (single-machine file; ledger-in-own-repository is a future step).

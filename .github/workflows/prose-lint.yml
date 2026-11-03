@@ -1,0 +1,23 @@
+# Enforces the project vocabulary (.vanguard/glossary/glossary.md) in every
+# markdown file via Vale. Required by branch protection on main.
+name: prose-lint
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  vale:
+    name: prose-lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: errata-ai/vale-action@v2
+        with:
+          fail_on_error: true
+          files: '.'
