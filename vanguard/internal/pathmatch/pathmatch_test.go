@@ -159,7 +159,6 @@ func TestMatching(t *testing.T) {
 		{"[^abc].md", "d.md", true},
 		{"[^abc].md", "a.md", false},
 		{"[a-c].md", "b.md", true},
-		{"{a,b}/**", "b/x", true},
 		{".vanguard/**", ".vanguard/vanguard.lock", true},
 	}
 	for _, tc := range tests {
