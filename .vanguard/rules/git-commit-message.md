@@ -104,6 +104,27 @@ spec(engine): require the recovery walk bound in the envelope   # md + lock
 feat(engine): wire the recovery walk bound into the engine      # go + tests
 ```
 
+## One store document per commit
+
+A commit carries **at most one file under `.vanguard/docs/`**:
+
+- Each store document is an independent, individually attested artifact.
+  Its lock entry records one anchor commit; mixing two documents into one
+  commit makes both attestations point at a diff the reviewer cannot
+  attribute cleanly.
+- Code, schemas, tests, and lockfile updates may ride along; only the
+  store-document count is capped at one. Deleting a document counts as its
+  one file.
+- The pre-commit hook (`.githooks/pre-commit`) rejects a commit staging two
+  or more `.vanguard/docs/` files.
+
+Typical shape for a contract sync:
+
+```
+spec(engine): document the prune pass in the check contract   # one .md
+spec(engine): re-attest the updated contracts                 # lock only
+```
+
 ## break / change
 
 - **break** — anything previously produced or installed that stops working:
