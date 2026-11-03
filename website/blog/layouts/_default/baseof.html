@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta name="description" content="A deterministic specification freshness harness. vanguard keeps spec documents honest - which documents have gone stale, and what exactly made them stale.">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <script>
+    const theme = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', theme);
+  </script>
+  <link rel="icon" type="image/svg+xml" href="{{ site.Params.siteRoot }}/static/img/logo-vanguard.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="alternate" type="application/rss+xml" title="RSS Feed" href="{{ "index.xml" | relURL }}">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Material+Icons&display=block">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass+Mono:wght@400;700&family=Overpass:ital,wght@0,400;0,700;1,400&display=swap">
+  <meta charset="utf-8">
+  <title id="title">vanguard-spec - lock down architectural invariants before line one</title>
+  <script defer src="{{ site.Params.siteRoot }}/site.js"></script>
+  <link href="{{ site.Params.siteRoot }}/static/main.css" rel="stylesheet">
+</head>
+<body>
+<div class="wrapper decorated">
+  {{ partial "top-bar.html" . }}
+  {{- if .IsHome }}<div class="blog-page">{{ else }}<div class="blog-post-page">{{ end }}
+    <div class="mdc-layout-grid">
+      <div class="mdc-layout-grid__inner">
+        {{- if .IsHome }}
+        <div class="mdc-layout-grid__cell--span-12 posts">
+          <h1 class="title">Blog</h1>
+        {{- else }}
+        <div class="mdc-layout-grid__cell--span-12 post">
+        {{- end }}
+          {{ block "main" . }}{{ end }}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

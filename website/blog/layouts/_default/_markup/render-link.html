@@ -1,0 +1,17 @@
+{{- $url := .Destination -}}
+{{- $isExternal := or (hasPrefix $url "http://") (hasPrefix $url "https://") -}}
+{{- $isTrusted := false -}}
+{{- if $isExternal -}}
+  {{- $isTrusted = or
+    (hasPrefix $url "https://github.com/vanguard-lint/")
+    (hasPrefix $url "https://vanguard-lint.github.io/")
+  -}}
+{{- end -}}
+<a href="{{ .Destination | safeURL }}"
+  {{- with .Title }} title="{{ . }}"{{ end -}}
+  {{- if $isExternal }} target="_blank"
+    {{- if $isTrusted }} rel="noopener noreferrer"
+    {{- else }} rel="nofollow noopener noreferrer"
+    {{- end -}}
+  {{- end -}}
+>{{ .Text | safeHTML }}</a>
