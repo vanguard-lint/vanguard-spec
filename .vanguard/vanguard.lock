@@ -1,19 +1,96 @@
 {
   "version": 1,
   "docs": {
+    "check-engine": {
+      "anchor": "19d2f9f67c89cf6c6818e8bab72b7e9ba7e3f579",
+      "observed_at": "2026-11-03T08:49:41Z",
+      "scope_tree_hash": "sha256:650537c61691cf21483ca0e9dc538dac9234492b5b10479d7bb555dcc311ab82",
+      "scope_file_count": 7,
+      "content_hash": "sha256:1988da8d1321029d0848ddb04bab421cbd1a858f01807dbabceba35ca459e9a8"
+    },
+    "command-surface": {
+      "anchor": "19d2f9f67c89cf6c6818e8bab72b7e9ba7e3f579",
+      "observed_at": "2026-11-03T08:49:42Z",
+      "scope_tree_hash": "sha256:e15964ec6757fae14f48646e776027488509212e024dc272c80a4088b7ff11af",
+      "scope_file_count": 1,
+      "content_hash": "sha256:eeffcc5ef9fb2a753e902c3e31537ecac4237850bdc9404192ec1cb72b6e346d"
+    },
+    "config": {
+      "anchor": "19d2f9f67c89cf6c6818e8bab72b7e9ba7e3f579",
+      "observed_at": "2026-11-03T08:49:42Z",
+      "scope_tree_hash": "sha256:e55c0e801fe86aef3dbd374c26860e28fd7f58fd99d2d7faa1b3c4f52b02e919",
+      "scope_file_count": 2,
+      "content_hash": "sha256:9cd336da9883b7df5095e799f25f11945436ac21a8e2e56a94a79440a66d317a"
+    },
+    "docmodel": {
+      "anchor": "19d2f9f67c89cf6c6818e8bab72b7e9ba7e3f579",
+      "observed_at": "2026-11-03T08:49:42Z",
+      "scope_tree_hash": "sha256:2546fed59c388151a621bf2ecc2197208f99869d52702696f27dadd5f3936912",
+      "scope_file_count": 2,
+      "content_hash": "sha256:7548bb1eeba52d4ed19c4dc5f6f40d8aaeb7232ec235ab7333ba2e2f64f04f85"
+    },
+    "duration": {
+      "anchor": "19d2f9f67c89cf6c6818e8bab72b7e9ba7e3f579",
+      "observed_at": "2026-11-03T08:49:42Z",
+      "scope_tree_hash": "sha256:698ec4ce6a672fccc8260f450304677eb8472664c370887a40a9a0d6bb49f7a8",
+      "scope_file_count": 2,
+      "content_hash": "sha256:f314542b91b5d9c60b511f1fa21c5a803ce84274c9cbeb33cf60a84ee75ea8ce"
+    },
+    "hashnorm": {
+      "anchor": "19d2f9f67c89cf6c6818e8bab72b7e9ba7e3f579",
+      "observed_at": "2026-11-03T08:49:42Z",
+      "scope_tree_hash": "sha256:34266cddbe3769b2a98d1ac4a9be7806647d103b179e0c47b656dc8a4ab50d14",
+      "scope_file_count": 2,
+      "content_hash": "sha256:a02e05dbf757c3393395c140b31274a95741982453b24e563a1afb4a6230f675"
+    },
+    "lockfile": {
+      "anchor": "19d2f9f67c89cf6c6818e8bab72b7e9ba7e3f579",
+      "observed_at": "2026-11-03T08:49:42Z",
+      "scope_tree_hash": "sha256:621a408f0814518686b4856d71c378e52d22af9eec217da7b988b0dcd0816939",
+      "scope_file_count": 2,
+      "content_hash": "sha256:cde98a805d8473b55a6fe7f58e39e97708d8e34f815aa2d2fd2ae633a410b79d"
+    },
+    "pathmatch": {
+      "anchor": "19d2f9f67c89cf6c6818e8bab72b7e9ba7e3f579",
+      "observed_at": "2026-11-03T08:49:42Z",
+      "scope_tree_hash": "sha256:fdc0d5ec52f081d3d8b21403e09bba0cf089b1ec3243b7ad62878db365b79932",
+      "scope_file_count": 2,
+      "content_hash": "sha256:0537e741f8763b16b07e4ac39dcd2f00949b29a5994d9da41f8c59c9c5c7552d"
+    },
+    "provider": {
+      "anchor": "19d2f9f67c89cf6c6818e8bab72b7e9ba7e3f579",
+      "observed_at": "2026-11-03T08:49:42Z",
+      "scope_tree_hash": "sha256:6d099e4c4c61ceaa19453574bef3e8d5c1f03b9d7ab2a73b272d4e9e09f80bc2",
+      "scope_file_count": 2,
+      "content_hash": "sha256:fe91927f6ce0b97e8852dd217dfab091df89b7dbcc7938100ae45c10734746a5"
+    },
+    "quality-plan": {
+      "anchor": "19d2f9f67c89cf6c6818e8bab72b7e9ba7e3f579",
+      "observed_at": "2026-11-03T08:49:37Z",
+      "scope_tree_hash": "sha256:8ed4c1fa2e8d5a033c529e30f5e4805a006b545460cb543d49f7f3775555bb8d",
+      "scope_file_count": 4,
+      "content_hash": "sha256:44086de7d394b9ae9be3601cd4263a8500288eb6c8a1cecb6e844c8f5321ca6e"
+    },
     "rollout-plan": {
-      "anchor": "da174f7dcf367ea1ec28c89ada1be8e30d9023f5",
-      "observed_at": "2026-11-03T08:19:30Z",
-      "scope_tree_hash": "sha256:67534befd19ccf1d614ec1d391ab871359677d7bce4aeb7f6a34353409f668f7",
-      "scope_file_count": 5,
-      "content_hash": "sha256:9a7bc12b3a24185e5f064c8484df2cbd78fb5205a7aab2ab5d6dcbb2ed820662"
+      "anchor": "19d2f9f67c89cf6c6818e8bab72b7e9ba7e3f579",
+      "observed_at": "2026-11-03T08:49:43Z",
+      "scope_tree_hash": "sha256:8ed4c1fa2e8d5a033c529e30f5e4805a006b545460cb543d49f7f3775555bb8d",
+      "scope_file_count": 4,
+      "content_hash": "sha256:45f002af4e632c0871da33ffd3129e61ce080906540895daa809b6ff8858ad30"
+    },
+    "scope": {
+      "anchor": "19d2f9f67c89cf6c6818e8bab72b7e9ba7e3f579",
+      "observed_at": "2026-11-03T08:49:43Z",
+      "scope_tree_hash": "sha256:f519005b32c188aefc9fd17725e42ba609cf72fa497cbd9852e832237170d1e2",
+      "scope_file_count": 2,
+      "content_hash": "sha256:c1bff0661385bfbe7b6ab86006e5c3d3348d980ea3f6cf87581ae8800819b5e8"
     },
     "vanguard-engine": {
-      "anchor": "282bdbe91a4afa2c9bc8808743346a6c68f0a9ac",
-      "observed_at": "2026-11-03T08:19:42Z",
-      "scope_tree_hash": "sha256:cfe55f7ef4f651358a56fe9fe8723accdd6ae538dfe9704ef616a3ea77aa3c35",
+      "anchor": "19d2f9f67c89cf6c6818e8bab72b7e9ba7e3f579",
+      "observed_at": "2026-11-03T08:49:43Z",
+      "scope_tree_hash": "sha256:9c7eaf442239706625ed325c874b5fe516be21f355768789b1ee1196a7686669",
       "scope_file_count": 24,
-      "content_hash": "sha256:32bd27e2944783b1b8a7be5c5487bf57609c0d366392319b7ec1958adade63df"
+      "content_hash": "sha256:26d5bb6ee9ea0e778d6d7dc241ead25bce53f3d67db6cba81f59627588a6cf93"
     }
   }
 }
