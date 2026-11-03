@@ -9,11 +9,11 @@
       "content_hash": "sha256:9a7bc12b3a24185e5f064c8484df2cbd78fb5205a7aab2ab5d6dcbb2ed820662"
     },
     "vanguard-engine": {
-      "anchor": "e35ae03f6bc09682cec4d764d5d4652bb6bd4acf",
-      "observed_at": "2026-11-03T07:56:22Z",
-      "scope_tree_hash": "sha256:1ee682d7664c44dae97a307436fbb854357943520574a2959d370da5d41a9ae7",
+      "anchor": "282bdbe91a4afa2c9bc8808743346a6c68f0a9ac",
+      "observed_at": "2026-11-03T08:19:42Z",
+      "scope_tree_hash": "sha256:cfe55f7ef4f651358a56fe9fe8723accdd6ae538dfe9704ef616a3ea77aa3c35",
       "scope_file_count": 24,
-      "content_hash": "sha256:d4736bd17d8ac18891d0fbdc3a1586826edfc056ae6891b4502fc1fc729210aa"
+      "content_hash": "sha256:32bd27e2944783b1b8a7be5c5487bf57609c0d366392319b7ec1958adade63df"
     }
   }
 }
