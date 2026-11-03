@@ -363,6 +363,13 @@ func (g *GitProvider) ScopeHashAt(tree *object.Tree, globs []string) (string, er
 // Attribution walks from..to and collects changed paths and introducing
 // commits inside the globs, oldest first.
 func (g *GitProvider) Attribution(from, to string, globs []string) ([]string, []string, error) {
+	if from != "" {
+		fromHash, resolveErr := g.resolveRef(from)
+		if resolveErr != nil {
+			return nil, nil, resolveErr
+		}
+		from = fromHash.String()
+	}
 	changedSet := map[string]bool{}
 	commitSet := map[string]bool{}
 

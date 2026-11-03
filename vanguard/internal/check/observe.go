@@ -1,7 +1,6 @@
 package check
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/vanguard-lint/vanguard/internal/docmodel"
@@ -82,6 +81,7 @@ func (e *Engine) Observe(req ObserveRequest) (*Result, error) {
 	env.Lock = LockReport{Changed: changed, Path: lockRelPath(e.LockPath)}
 	env.ExitBits = bits
 	sortDocs(env.Documents)
+	env.Refused = res.Refusals
 	res.Envelope = env
 	return res, nil
 }
@@ -95,7 +95,7 @@ func (e *Engine) prune() (*Result, error) {
 		if docByID(e.Docs, id) == nil {
 			delete(e.Lock.Docs, id)
 			changed = true
-			env.Hints = append(env.Hints, fmt.Sprintf("pruned %q", id))
+			env.Pruned = append(env.Pruned, id)
 		}
 	}
 	if changed {
@@ -186,23 +186,26 @@ func (e *Engine) attest(doc *docmodel.Doc, at time.Time) (lockfile.Entry, *refus
 			}
 		}
 		if len(doc.PathGlobs) > 0 {
-			scopeHash, err := e.Prov.ScopeHash(doc.PathGlobs)
-			if err != nil {
+			snap, snapErr := e.Prov.Snapshot(doc.PathGlobs)
+			if snapErr != nil {
 				return lockfile.Entry{}, &refusal{bit: BitFatal, reason: "IO failure",
 					hint: "the scope state could not be computed"}
 			}
-			if scopeHash == emptyScopeHash {
+			if len(snap) == 0 {
 				return lockfile.Entry{}, &refusal{
 					bit:    BitFatal,
 					reason: "config error",
 					hint:   "the watch globs match zero files at the target — likely a typo; observe refuses an empty scope",
 				}
 			}
+			scopeHash, hashErr := e.Prov.ScopeHash(doc.PathGlobs)
+			if hashErr != nil {
+				return lockfile.Entry{}, &refusal{bit: BitFatal, reason: "IO failure",
+					hint: "the scope state could not be computed"}
+			}
 			entry.Anchor = head
 			entry.ScopeTreeHash = scopeHash
-			if snap, err := e.Prov.Snapshot(doc.PathGlobs); err == nil {
-				entry.ScopeFileCount = len(snap)
-			}
+			entry.ScopeFileCount = len(snap)
 		}
 	} else {
 		// HashProvider mode: no HEAD, no clean concept — the anchor is the
@@ -226,8 +229,8 @@ func (e *Engine) attest(doc *docmodel.Doc, at time.Time) (lockfile.Entry, *refus
 	return entry, nil
 }
 
-// emptyScopeHash is the combined hash of zero globs — observe refuses it.
-const emptyScopeHash = ""
+// emptyScopeHash is retired: the zero-match refusal now keys off the
+// snapshot file count, which works in both provider modes.
 
 func lockRelPath(path string) string {
 	return ".vanguard/vanguard.lock"

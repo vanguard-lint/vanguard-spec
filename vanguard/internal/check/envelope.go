@@ -82,7 +82,9 @@ type Envelope struct {
 	LockLost        bool       `json:"lock_lost,omitempty" yaml:"lock_lost,omitempty"`
 	Hints           []string   `json:"hints,omitempty" yaml:"hints,omitempty"`
 	// Observe-only.
-	Lock LockReport `json:"lock" yaml:"lock"`
+	Lock    LockReport `json:"lock" yaml:"lock"`
+	Refused []Refused  `json:"refused,omitempty" yaml:"refused,omitempty"`
+	Pruned  []string   `json:"pruned,omitempty" yaml:"pruned,omitempty"`
 }
 
 // LockReport describes the observe write.

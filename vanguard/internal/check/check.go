@@ -49,6 +49,15 @@ type Selection struct {
 	MaxRecoveryWalk int
 }
 
+// staleBit returns the exit-bit contribution of one document's staleness
+// signals: any triggered watch axis or a document-side change sets bit 2.
+func staleBit(d Document) int {
+	if d.DocumentChanged || len(d.TriggeredWatches) > 0 {
+		return BitStale
+	}
+	return 0
+}
+
 // checkAll — two-phase: structure (discovery already fails closed on parse
 // and id errors; schema enforcement is phase-1 for later milestones), then
 // freshness for every document.
@@ -71,9 +80,7 @@ func (e *Engine) checkAll(sel Selection) (*Result, error) {
 		if d.Status != "" {
 			env.Documents = append(env.Documents, d)
 		}
-		if d.DocumentChanged || containsString(d.TriggeredWatches, "paths") {
-			bits |= BitStale
-		}
+		bits |= staleBit(d)
 		if d.Status == StatusDirty {
 			bits |= BitDirty
 		}
@@ -84,6 +91,7 @@ func (e *Engine) checkAll(sel Selection) (*Result, error) {
 	if sel.Strict && (unobservedCount > 0 || len(env.Unwatched) > 0) {
 		bits |= BitGaps
 	}
+	sortStrings(env.Unobserved)
 
 	// Lost lock: lockfile absent while every discovered document reports
 	// unobserved — sets the stale bit by default, all mode only.
@@ -128,12 +136,17 @@ func (e *Engine) evaluate(doc *docmodel.Doc, sel Selection) (Document, bool) {
 			fmtHint("never attested — run: vanguard observe %s", doc.ID))
 		return d, true
 	}
-	return e.evaluateObserved(doc, entry, &d), true
+	if len(doc.Bindings) > 0 && !sel.RunBindings {
+		// Referenced-but-not-run: the pending notation is informational,
+		// never a status.
+		d.Bindings = e.BindingsFor(doc.ID, doc.Bindings)
+	}
+	return e.evaluateObserved(doc, entry, &d, sel.MaxRecoveryWalk), true
 }
 
 // evaluateObserved computes the freshness chain for a document with a
 // baseline: stale (any condition) > dirty (only uncommitted churn) > fresh.
-func (e *Engine) evaluateObserved(doc *docmodel.Doc, entry lockfile.Entry, d *Document) Document {
+func (e *Engine) evaluateObserved(doc *docmodel.Doc, entry lockfile.Entry, d *Document, maxWalk int) Document {
 	stale := false
 
 	// Shape mismatch: the entry's kind must fit the current provider mode —
@@ -185,7 +198,7 @@ func (e *Engine) evaluateObserved(doc *docmodel.Doc, entry lockfile.Entry, d *Do
 	// snapshot) against the lock. History is attribution only.
 	if hasPaths {
 		if e.Prov.GitMode() {
-			stalePaths, changed, commits := e.gitPathsAxis(doc, entry, d)
+			stalePaths, changed, commits := e.gitPathsAxis(doc, entry, d, maxWalk)
 			if stalePaths {
 				stale = true
 				d.TriggeredWatches = append(d.TriggeredWatches, "paths")
@@ -219,7 +232,7 @@ func (e *Engine) evaluateObserved(doc *docmodel.Doc, entry lockfile.Entry, d *Do
 }
 
 // gitPathsAxis decides the paths axis and attribution for git mode.
-func (e *Engine) gitPathsAxis(doc *docmodel.Doc, entry lockfile.Entry, d *Document) (stale bool, changed, commits []string) {
+func (e *Engine) gitPathsAxis(doc *docmodel.Doc, entry lockfile.Entry, d *Document, maxWalk int) (stale bool, changed, commits []string) {
 	head, err := e.Prov.HEAD()
 	if err != nil || head == "" {
 		// Unborn target: nothing committed — the scope cannot match the
@@ -246,7 +259,7 @@ func (e *Engine) gitPathsAxis(doc *docmodel.Doc, entry lockfile.Entry, d *Docume
 		changed, commits, _ = e.Prov.Attribution(entry.Anchor, head, doc.PathGlobs)
 		return true, changed, commits
 	}
-	recovered, err := e.Prov.RecoveredAnchor(doc.PathGlobs, entry.ScopeTreeHash, e.recoveryBound())
+	recovered, err := e.Prov.RecoveredAnchor(doc.PathGlobs, entry.ScopeTreeHash, e.recoveryBound(maxWalk))
 	if err == nil && recovered != "" {
 		d.AnchorRecovered = true
 		changed, commits, _ = e.Prov.Attribution(recovered, head, doc.PathGlobs)
@@ -256,7 +269,10 @@ func (e *Engine) gitPathsAxis(doc *docmodel.Doc, entry lockfile.Entry, d *Docume
 	return true, nil, nil
 }
 
-func (e *Engine) recoveryBound() int {
+func (e *Engine) recoveryBound(maxWalk int) int {
+	if maxWalk > 0 {
+		return maxWalk
+	}
 	return 1000
 }
 
@@ -292,10 +308,7 @@ func (e *Engine) checkDoc(sel Selection) (*Result, error) {
 		env.Unwatched = append(env.Unwatched, doc.ID)
 	}
 	env.Documents = append(env.Documents, d)
-	bits := 0
-	if d.DocumentChanged || containsString(d.TriggeredWatches, "paths") {
-		bits |= BitStale
-	}
+	bits := staleBit(d)
 	if d.Status == StatusDirty {
 		bits |= BitDirty
 	}
@@ -330,9 +343,7 @@ func (e *Engine) checkPath(sel Selection) (*Result, error) {
 			d.Hints = append(d.Hints, "run a full vanguard check to see whether the whole lock is missing")
 		}
 		env.Documents = append(env.Documents, d)
-		if d.DocumentChanged || containsString(d.TriggeredWatches, "paths") {
-			bits |= BitStale
-		}
+		bits |= staleBit(d)
 		if d.Status == StatusDirty {
 			bits |= BitDirty
 		}
