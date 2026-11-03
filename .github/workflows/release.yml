@@ -40,7 +40,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git tag -l "${GITHUB_REF_NAME}" --format='%(contents)' > ../release_notes.md
+          git tag -l "${GITHUB_REF_NAME}" --format='%(contents)' > release_notes.md
       - name: Publish the GitHub release
         uses: softprops/action-gh-release@v2
         with:
