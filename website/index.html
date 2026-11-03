@@ -1,0 +1,301 @@
+<!doctype html>
+<!--
+  Website for vanguard-spec.
+  Markup and styling derived from https://osv.dev (google/osv-dev, Apache 2.0),
+  recolored to the vanguard brand (#E74539) and rewritten for vanguard content.
+  See static/OSV-LICENSE.
+-->
+<html lang="en"><head><meta name="description" content="A deterministic specification freshness harness. vanguard keeps spec documents honest — which documents have gone stale, and what exactly made them stale."><meta name="viewport" content="width=device-width,initial-scale=1"><script>
+    const theme = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', theme);</script><link rel="icon" type="image/svg+xml" href="static/img/logo-vanguard.svg"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Material+Icons&display=block"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Overpass+Mono:wght@400;700&family=Overpass:ital,wght@0,400;0,700;1,400&display=swap"><meta charset="utf-8"><title id="title">vanguard-spec — lock down architectural invariants before line one</title>
+<link rel="preload" fetchpriority="high" as="image" href="static/img/background-1.webp" type="image/webp">
+<link rel="preload" fetchpriority="high" as="image" href="static/img/background-2.webp" type="image/webp">
+<link rel="preload" fetchpriority="high" as="image" href="static/img/external-link.svg" type="image/webp">
+<link rel="preload" fetchpriority="high" as="image" href="static/img/footer-decoration.webp" type="image/webp"
+      media="(min-width: 768px)" onload="this.media='all'">
+<script defer="defer" src="site.js"></script><link href="static/main.css" rel="stylesheet"></head><body><div class="wrapper decorated"><header class="top-bar"><div class="logo"><a href="/" aria-label="Home page"><img alt="vanguard-spec logo" class="logo-img-light" src="static/img/logo-vanguard.svg" width="30" height="32"> <img alt="vanguard-spec logo" class="logo-img-dark" src="static/img/logo-vanguard.svg" width="30" height="32"></a></div><input type="checkbox" id="hamburger-checkbox" aria-label="Hamburger Menu"> <label class="hamburger" for="hamburger-checkbox"><span></span> <span></span> <span></span></label><ul class="tabs"><li class=" page-link"><a href="#formats">Document Formats</a></li><li class=" page-link external-link"><a href="https://github.com/vanguard-lint/vanguard-spec/blob/main/docs/designs/vanguard.md" target="_blank">Design</a></li><li class=" page-link"><a href="#use-the-cli">CLI</a></li><li class=" page-link external-link"><a href="https://github.com/vanguard-lint/vanguard-spec" target="_blank">GitHub</a></li><ul class="push social-icons"><li class="search-container-nav"><div class="search-toggle-container"><form class="search-form search-suggestions-container" action="#formats"><input name="q" class="search-input" placeholder="Search documents..." maxlength="300" autocomplete="off"> <button type="submit" class="search-submit" aria-label="Search"><span class="material-icons">arrow_forward</span></button></form><button class="search-toggle" aria-label="Toggle search" aria-expanded="false"><span class="material-icons">search</span></button></div></li><li class="theme-toggle-container"><button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle theme"><span class="material-icons icon-light-mode">light_mode</span> <span class="material-icons icon-dark-mode">dark_mode</span></button></li><li class="github-container"><a class="logo-img" href="https://github.com/vanguard-lint/vanguard-spec" target="_blank" aria-label="Go to our github page"><img class="logo-link" src="static/img/github-mark-white.svg" alt="Github Logo" width="24" height="24"></a></li></ul></ul></header>
+<div class="mdc-layout-grid home-page">
+  <div class="mdc-layout-grid__inner">
+    <div class="mdc-layout-grid__cell--span-12 hero">
+      <h1 class="title">A specification freshness harness for your repository</h1>
+      <div class="explainer">
+        <p>An open, deterministic approach to producing and consuming specification
+          freshness information — computed from git, never judged.
+        </p>
+      </div>
+      <div class="cta">
+        <a class="cta-primary link-button" href="#formats">
+          <span class="material-icons" style="margin-right: 8px;">search</span>
+          Search Document Formats
+        </a>
+        <a class="cta-primary link-button" href="#use-the-cli">Use the CLI</a>
+      </div>
+      <div class="cta">
+        <a class="cta-primary link-button" href="#use-the-cli">vanguard check</a>
+        <a class="cta-primary link-button" href="#use-the-cli">vanguard observe</a>
+        <a class="cta-primary link-button" href="#schema">vanguard.lock</a>
+      </div>
+    </div>
+    <div class="mdc-layout-grid__cell--span-12 ecosystems-section">
+      <h2 class="heading">Document formats</h2>
+      <div class="ecosystem-counts-wrapper">
+        <div class="ecosystems-line-mid"></div>
+        <div class="ecosystems-line-0"></div>
+        <div class="ecosystems-line-1"></div>
+        <div class="ecosystems-line-2"></div>
+        <div class="ecosystems-line-3"></div>
+        <dl class="ecosystem-counts">
+
+          <dt class="ecosystem-name">Markdown</dt>
+          <dd class="ecosystem-count-wrapper">
+            <a href="#schema">
+              <span class="ecosystem-count" style="
+                      width: 96px; height: 96px; line-height: 96px">
+                214
+                <span class="tooltip" style="
+                       top: -52px;">
+                  View Markdown documents
+                </span>
+              </span>
+            </a>
+          </dd>
+
+          <dt class="ecosystem-name">JSON</dt>
+          <dd class="ecosystem-count-wrapper">
+            <a href="#schema">
+              <span class="ecosystem-count" style="
+                      width: 70px; height: 70px; line-height: 70px">
+                58
+                <span class="tooltip" style="
+                       top: -39px;">
+                  View JSON documents
+                </span>
+              </span>
+            </a>
+          </dd>
+
+          <dt class="ecosystem-name">YAML</dt>
+          <dd class="ecosystem-count-wrapper">
+            <a href="#schema">
+              <span class="ecosystem-count" style="
+                      width: 54px; height: 54px; line-height: 54px">
+                27
+                <span class="tooltip" style="
+                       top: -31px;">
+                  View YAML documents
+                </span>
+              </span>
+            </a>
+          </dd>
+
+          <dt class="ecosystem-name">C4 DSL</dt>
+          <dd class="ecosystem-count-wrapper">
+            <a href="#schema">
+              <span class="ecosystem-count" style="
+                      width: 40px; height: 40px; line-height: 40px">
+                12
+                <span class="tooltip" style="
+                       top: -24px;">
+                  View C4 DSL documents
+                </span>
+              </span>
+            </a>
+          </dd>
+
+        </dl>
+      </div>
+    </div>
+
+    <div class="mdc-layout-grid__cell--span-12 text-info" id="schema">
+      <h2 class="heading">Lock schema</h2>
+      <p class="description">
+        Every observed document is attested in
+        <code>vanguard.lock</code>, a file committed to the repository like
+        <code>go.sum</code>.
+      </p>
+      <p class="description">
+        The lock records a human-attested baseline: the exact content hash,
+        the anchor commit, and the hash of every watched scope tree — so the
+        same repository state always produces the same verdict, offline.
+      </p>
+      <div class="mdc-layout-grid__inner">
+        <div class="mdc-layout-grid__cell--span-12">
+          <pre class="big-code-block"><code>{
+  "schema": 1,
+  "docs": {
+    "architecture-overview": {
+      "observed_at": "2026-11-01T09:24:00Z",
+      "content_hash": "sha256:9f2c…",
+      "anchor": "a5181ca",
+      "scope_tree_hash": "sha256:41bd…",
+      "scope_file_count": 214,
+      "watches": {
+        "paths": ["docs/**"],
+        "review_after": "2027-05-01"
+      }
+    }
+  }
+}</code></pre>
+        </div>
+      </div>
+      <div class="cta">
+        <a class="cta-primary link-button" href="https://github.com/vanguard-lint/vanguard-spec/blob/main/docs/designs/vanguard.md">Design document</a>
+        <a class="cta-primary link-button" href="https://github.com/vanguard-lint/vanguard-spec">GitHub</a>
+      </div>
+    </div>
+    <div class="mdc-layout-grid__cell--span-12 text-info data-sources">
+      <h2 class="heading">Where the signal comes from</h2>
+      <p class="description">
+        Staleness is decided by hashing the declared scope — a
+        <a href="https://github.com/vanguard-lint/vanguard-spec/blob/main/docs/designs/vanguard.md">scope tree hash</a>
+        over the document's <code>paths</code> watch — never by asking a model.
+        Git history is used only for attribution: which exact commit churned a
+        watched file, and which commit attested the last baseline.
+      </p>
+      <div class="cta">
+        <a class="cta-primary link-button" href="https://github.com/vanguard-lint/vanguard-spec/blob/main/docs/designs/vanguard.md"
+           aria-label="Learn more in the design document">Read the design</a>
+      </div>
+    </div>
+    <div id="use-the-cli" class="mdc-layout-grid__cell--span-12 usage-examples">
+      <h2 class="heading">Use the CLI</h2>
+      <p class="description">
+        Two commands carry the whole contract. Structural errors are always
+        fatal; per-document staleness composes into an exit bitmask that CI
+        and agents consume without parsing prose.
+      </p>
+      <div class="code-card-container mdc-layout-grid__inner">
+        <div class="code-card mdc-layout-grid__cell--span-6 mdc-layout-grid__cell--span-12-tablet">
+          <h3 class="code-card-title">Check — decide, never guess</h3>
+          <pre class="code-card-content" id="example-check">$ vanguard check --format json
+{
+  "schema": 1,
+  "documents": [{
+    "id": "architecture-overview",
+    "status": "stale",
+    "reasons": ["scope_changed"],
+    "introducing_commits": ["81243c6"]
+  }]
+}</pre>
+          <button class="code-card-copy copy-btn" for="example-check" aria-label="Copy">
+            <span class="material-icons">content_copy</span>
+          </button>
+        </div>
+        <div class="code-card mdc-layout-grid__cell--span-6 mdc-layout-grid__cell--span-12-tablet">
+          <h3 class="code-card-title">Observe — attest, don't assume</h3>
+          <pre class="code-card-content" id="example-observe">$ vanguard observe architecture-overview
+stale → fresh
+anchor moved to 81243c6
+scope: 214 files · sha256:41bd…
+
+$ vanguard check
+all documents fresh (exit 0)</pre>
+          <button class="code-card-copy copy-btn" for="example-observe" aria-label="Copy">
+            <span class="material-icons">content_copy</span>
+          </button>
+        </div>
+      </div>
+      <div class="mdc-layout-grid__cell--span-12">
+        <div class="cta">
+          <a class="cta-primary link-button" href="https://github.com/vanguard-lint/vanguard-spec/blob/main/docs/designs/vanguard.md">CLI
+            contract</a>
+        </div>
+      </div>
+    </div>
+    <div id="use-vanguard-install" class="mdc-layout-grid__cell--span-12 usage-examples">
+
+      <h2 class="heading">Install &amp; Run</h2>
+      <div class="code-card-container mdc-layout-grid__inner">
+        <div class="mobile-spacer mdc-layout-grid__cell--span-3"></div>
+        <div class="code-card mdc-layout-grid__cell--span-6 mdc-layout-grid__cell--span-12-tablet">
+          <h3 class="code-card-title">Install vanguard</h3>
+          <pre class="code-card-content" id="example-install">
+go install github.com/vanguard-lint/vanguard/cmd/vanguard@latest
+          </pre>
+          <button class="code-card-copy copy-btn" for="example-install" aria-label="Copy">
+            <span class="material-icons">content_copy</span>
+          </button>
+        </div>
+        <div class="mobile-spacer mdc-layout-grid__cell--span-3"></div>
+        <div class="code-card mdc-layout-grid__cell--span-6 mdc-layout-grid__cell--span-12-tablet">
+          <h3 class="code-card-title">Check a path scope</h3>
+          <pre class="code-card-content" id="example-paths">
+vanguard check --path 'docs/**'
+vanguard check --path 'docs/api/**'
+          </pre>
+          <button class="code-card-copy copy-btn" for="example-paths" aria-label="Copy">
+            <span class="material-icons">content_copy</span>
+          </button>
+        </div>
+        <div class="code-card mdc-layout-grid__cell--span-6 mdc-layout-grid__cell--span-12-tablet">
+          <h3 class="code-card-title">Check a commit range</h3>
+          <pre class="code-card-content" id="example-range">
+vanguard check --from v1.2.0 --to HEAD
+vanguard check --from v1.2.0 --fail-on-affected
+          </pre>
+          <button class="code-card-copy copy-btn" for="example-range" aria-label="Copy">
+            <span class="material-icons">content_copy</span>
+          </button>
+        </div>
+      </div>
+      <div class="mdc-layout-grid__cell--span-12">
+        <div class="cta">
+          <a class="cta-primary link-button" href="https://github.com/vanguard-lint/vanguard-spec">More details</a>
+        </div>
+      </div>
+    </div>
+    <div id="use-exit-codes" class="mdc-layout-grid__cell--span-12 usage-examples">
+
+      <h2 class="heading">Exit bitmask</h2>
+      <div class="code-card-container mdc-layout-grid__inner">
+        <div class="code-card mdc-layout-grid__cell--span-6 mdc-layout-grid__cell--span-12-tablet">
+          <h3 class="code-card-title">Fail closed in CI</h3>
+          <pre class="code-card-content" id="example-strict">
+# structural errors are always fatal;
+# per-document staleness turns red with --strict
+vanguard check --strict
+          </pre>
+          <button class="code-card-copy copy-btn" for="example-strict" aria-label="Copy">
+            <span class="material-icons">content_copy</span>
+          </button>
+        </div>
+        <div class="code-card mdc-layout-grid__cell--span-6 mdc-layout-grid__cell--span-12-tablet">
+          <h3 class="code-card-title">Bit composition (OR)</h3>
+          <pre class="code-card-content" id="example-bits">
+1  structural   2  stale
+4  dirty        8  unobserved
+16 lock lost    32 affected in range
+          </pre>
+          <button class="code-card-copy copy-btn" for="example-bits" aria-label="Copy">
+            <span class="material-icons">content_copy</span>
+          </button>
+        </div>
+
+
+      </div>
+      <div class="mdc-layout-grid__cell--span-12">
+        <div class="cta">
+          <a class="cta-primary link-button"
+             href="https://github.com/vanguard-lint/vanguard-spec/blob/main/docs/designs/vanguard.md">Exit-code contract</a>
+        </div>
+      </div>
+    </div>
+    <div class="mdc-layout-grid__cell--span-12 usage-examples">
+      <div class="mdc-layout-grid__cell--span-12 open-source-banner">
+        <h2 class="heading">Open source</h2>
+        <p class="description"> This project is <a href="https://github.com/vanguard-lint/vanguard-spec">open source</a>. If you
+          have any ideas or questions, please feel free to reach out by <a
+              href="https://github.com/vanguard-lint/vanguard-spec/issues">creating an issue</a>! </p>
+
+        <div class="cta">
+          <a class="cta-primary link-button" href="https://github.com/vanguard-lint/vanguard-spec"
+             aria-label="Go to the GitHub repository">GitHub repository</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <footer>
+    <p class="footer-note">vanguard-spec · Apache 2.0 · lock down architectural invariants before line one</p>
+  </footer>
+</div>
+</div></body></html>
