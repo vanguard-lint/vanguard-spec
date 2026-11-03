@@ -49,7 +49,9 @@ that is identical in JSON and YAML, with exit bits composing by OR.
 - Freshness precedence: stale (any axis) over dirty (uncommitted churn only)
   over fresh [check.go:evaluateObserved].
 - The paths axis is the net-state rule: the scope hash at HEAD against the
-  lock; history is attribution only [check.go:gitPathsAxis].
+  lock; history is attribution only, and attribution is reported on the
+  fresh net-state too (A->B->A is fresh with the introducing commits
+  named) [check.go:gitPathsAxis].
 - Anchor attribution follows three paths — reachable, recovered within the
   bound (default 1000), orphaned [check.go:gitPathsAxis].
 - Gap categories (unobserved, unwatched) set no bit by default; `--strict`

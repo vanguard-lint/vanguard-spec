@@ -18,7 +18,9 @@ whole-segments-only; dotfiles match like any file.
 ## Interface
 
 - `Expand(glob) ([]string, error)` — one level of brace alternatives, each
-  canonicalized, deduplicated, in declaration order [pathmatch.go:Expand].
+  canonicalized, deduplicated, in declaration order; expansion is capped at
+  10000 results so a hostile glob fails fast with a hint, never hangs
+  [pathmatch.go:Expand, pathmatch.go:expandBraces].
 - `Canonical(glob) (string, error)` — normalize and validate: strips `./` and
   trailing `/`, bare directory forms become `dir/**`, `.` becomes `**`,
   collapses consecutive `**` [pathmatch.go:Canonical].
