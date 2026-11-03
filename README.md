@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="resources/readme-header-dark.svg?v=2">
-    <img src="resources/readme-header-light.svg?v=2" alt="vanguard-spec — lock down architectural invariants before line one" width="480">
+    <source media="(prefers-color-scheme: dark)" srcset="resources/readme-header-dark.svg?v=3">
+    <img src="resources/readme-header-light.svg?v=3" alt="vanguard-spec — lock down architectural invariants before line one" width="480">
   </picture>
 </p>
 
