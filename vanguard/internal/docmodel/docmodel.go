@@ -30,7 +30,7 @@ const MaxIDLen = 128
 
 // Watches are the staleness sources declared in frontmatter.
 type Watches struct {
-	Paths       []string `yaml:"paths"`        // raw globs; canonicalized during discovery
+	Paths       []string `yaml:"paths"` // raw globs; canonicalized during discovery
 	ReviewAfter string   `yaml:"review_after"`
 }
 
