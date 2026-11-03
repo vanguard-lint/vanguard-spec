@@ -14,6 +14,21 @@ the design canon stays authoritative.
 ## Layout
 
 - `cmd/vanguard` — the CLI surface: init, check, observe, wired with cobra.
+  Package contracts live in `engine/` beside this document — one per
+  subsystem, each bound by `schema: package-contract` in its frontmatter:
+  [hashnorm](engine/hashnorm.md), [pathmatch](engine/pathmatch.md),
+  [scope](engine/scope.md), [duration](engine/duration.md),
+  [config](engine/config.md), [docmodel](engine/docmodel.md),
+  [lockfile](engine/lockfile.md), [provider](engine/provider.md),
+  [check](engine/check-engine.md), and the [command
+  surface](engine/command-surface.md).
+- `.vanguard/schemas/` holds the binding contracts: `document.schema.json`
+  (the engine fields of every store document), `package-contract.schema.json`
+  (structure of the engine/ contracts), `envelope-v1.schema.json` (the output
+  envelope), and `criteria-tree.schema.json` (the quality criteria tree).
+- The quality artifacts live under `quality/`: the criteria tree plus the
+  quality plan itself ([quality-plan](quality-plan.md)); the rollout plan is
+  [rollout-plan](rollout-plan.md).
 - `internal/hashnorm` — the normalization pipeline: binary detection on the
   first 8 KiB, BOM strip, CR fold, trailing-LF strip, streaming, no Unicode
   canonization. All eight mandatory vectors have tests.

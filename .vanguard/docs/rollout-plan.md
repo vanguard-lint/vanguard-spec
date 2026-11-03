@@ -23,7 +23,6 @@ under `docs/reviews/`.
 ## Workstreams
 
 ### W1 — Lock integrity (new, from `docs/designs/lock-integrity-section.en.md`)
-
 Ratify the proposed section into the design canon, then implement:
 
 - Tier A in every check: `lock_noncanonical`, `lock_uncommitted`,
@@ -35,11 +34,11 @@ Ratify the proposed section into the design canon, then implement:
   list that is never silent.
 - `check --verify-lock` reusing the same engine path.
 
-### W2 — Quality plan execution (from `docs/designs/vanguard-quality-plan.en.md`)
+### W2 — Quality plan execution (from `.vanguard/docs/quality-plan.md`)
 
-- Export `docs/quality/criteria-tree.yaml` with the node schema from section
-  6; run the Decomposer / Attacker / Referee round for L1 to freeze L0 and
-  L1.
+- The criteria tree lives at `.vanguard/docs/quality/criteria-tree.yaml`,
+  validated by `.vanguard/schemas/criteria-tree.schema.json`; run the
+  Decomposer / Attacker / Referee round for L1 to freeze L0 and L1.
 - Turn each L4 leaf into a named test (`Q-1.1.a-1`, ...) wired into CI per
   the section 8 gate table. The oracle for git facts is the real git CLI,
   never go-git itself.

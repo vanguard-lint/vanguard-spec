@@ -33,7 +33,7 @@ No history scan is needed. Cost is O(lock size) plus one comparison against HEAD
 | `lock_noncanonical` | `canonical(parse(file)) ≠ file`, byte for byte | The file was not written by `observe` (id order, field order, indent, newline). **The strongest signal of a manual hand-edit**, since `observe` always writes the canonical form |
 | `lock_uncommitted` | Lock in the worktree differs from the lock blob at HEAD (git mode, store inside the repository) | The lock is modified but uncommitted. An attestation not in git cannot be reviewed. Hint: *"commit the lock, or `git checkout -- .vanguard/vanguard.lock` to revert"* |
 | `lock_entry_shape` | Entry missing required fields (`observed_at`, `content_hash`), mixes `anchor` with `scope_snapshot`, or `scope_tree_hash` has the wrong kind prefix | The entry is not one of the three valid shapes. Treated as corrupt for that entry only |
-| `lock_orphan_entries` | Entry whose id is no longer in discovery | Advisory already exists; unchanged |
+| `lock_orphan_entries` | Entry whose id is no longer in discovery | New check: an orphan-entry scan in `check` (the prune path already computes this set) |
 
 Severity: **advisory warning** in the envelope's `violations[]` (code in column 1, with `file` + `hint`). No exit bit by default, so bootstrap is not broken. `--strict` escalates them to **bit 8**.
 
@@ -81,7 +81,7 @@ This tier answers the question human reviewers need: **"are this PR's lock/confi
 | `vanguard check --verify-lock` | Runs Tiers A + B within the same `check` (convenient for one-command CI) |
 | `--max-lock-history <n>` | Bound on how many lock-history commits are walked, default `200` |
 
-General rule: `verify` **never writes**, never opens a socket, never spawns a process. A flag not applicable to the current mode is a usage error (same rule as `--strict` ∘ `--from`).
+General rule: `verify` **never writes**, never opens a socket, never spawns a process. A flag not applicable to the current mode is a usage error; today only the `--strict` ∘ `--from` pair is enforced, so the general rule ships with this proposal.
 
 ### Envelope impact
 
