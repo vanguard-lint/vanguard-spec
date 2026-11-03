@@ -1,0 +1,5 @@
+# vanguard store — user-owned configuration
+version: 1
+discovery:
+  include:
+    - "**/*.md"
