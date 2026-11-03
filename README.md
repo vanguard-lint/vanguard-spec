@@ -6,8 +6,7 @@ A spec-driven verification harness that locks down architectural invariants befo
 
 Vanguard is a standalone command-line tool that keeps specification documents honest. It manages a project's spec documents (markdown, JSON, YAML, and DSL dialects such as C4), verifies that each document follows the structure its owner declared, and answers one question deterministically:
 
-> [!NOTE]
-> **Which documents have gone stale — and what exactly made them stale.**
+![Which documents have gone stale — and what exactly made them stale.](https://img.shields.io/badge/Which%20documents%20have%20gone%20stale%20%E2%80%94%20and%20what%20exactly%20made%20them%20stale.-e64438?style=for-the-badge)
 
 ## Principles
 
