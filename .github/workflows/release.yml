@@ -41,12 +41,15 @@ jobs:
         run: |
           set -euo pipefail
           # .vanguard/rules/versioning.md, "Release notes": the published
-          # body is the tag annotation, never a commit message. The shallow
-          # checkout leaves a lightweight ref, so fetch the tag object and
-          # fail the run when the annotation comes back empty.
-          git fetch origin "+refs/tags/${GITHUB_REF_NAME}:refs/tags/${GITHUB_REF_NAME}" --no-tags
-          git tag -l "${GITHUB_REF_NAME}" --format='%(contents)' > release_notes.md
-          [ -s release_notes.md ] || { echo "release: empty annotation for ${GITHUB_REF_NAME} - refusing to publish" >&2; exit 1; }
+          # body is the tag annotation, never a commit message. Read the
+          # annotation from the tag object over the API: a lightweight or
+          # missing tag fails the run here — there is no fallback path.
+          tag_sha="$(git ls-remote origin "refs/tags/${GITHUB_REF_NAME}" | cut -f1)"
+          curl -sf -H "Authorization: Bearer ${{ github.token }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/git/tags/${tag_sha}" \
+            | jq -er '.message' > release_notes.md
+          [ -s release_notes.md ] || { echo "release: no annotation on ${GITHUB_REF_NAME} - refusing to publish" >&2; exit 1; }
       - name: Publish the GitHub release
         uses: softprops/action-gh-release@v2
         with:
