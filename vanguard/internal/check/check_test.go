@@ -706,3 +706,47 @@ func TestFreshAmendedAnchorIsNoted(t *testing.T) {
 			d.Status, d.AnchorRecovered, d.AnchorOrphaned)
 	}
 }
+
+func TestDirtyEnvelopeCarriesWhatAndWhere(t *testing.T) {
+	root, store := scaffold(t)
+	e := load(t, store)
+	if _, err := e.Observe(ObserveRequest{DocID: "payments"}); err != nil {
+		t.Fatal(err)
+	}
+	wf(t, root, "src/payments/api.go", "package payments // churned\n")
+
+	res, err := load(t, store).Check(Selection{Mode: ModeAll})
+	if err != nil {
+		t.Fatal(err)
+	}
+	d := res.Envelope.Documents[0]
+	if d.Status != StatusDirty {
+		t.Fatalf("status = %s, want dirty", d.Status)
+	}
+	seen := false
+	for _, p := range d.ChangedPaths {
+		if strings.Contains(p, "api.go") {
+			seen = true
+		}
+	}
+	if !seen {
+		t.Fatalf("changed_paths = %v, want the churned file", d.ChangedPaths)
+	}
+	if len(d.Hints) == 0 {
+		t.Fatal("dirty document must carry a next-command hint")
+	}
+}
+
+func TestMissingDocsRootIsActionable(t *testing.T) {
+	_, store := scaffold(t)
+	if err := os.RemoveAll(filepath.Join(store, "docs")); err != nil {
+		t.Fatal(err)
+	}
+	_, err := Load(store, Options{Now: time.Date(2026, 11, 3, 12, 0, 0, 0, time.UTC)})
+	if err == nil {
+		t.Fatal("missing document root must be fatal")
+	}
+	if !strings.Contains(err.Error(), "does not exist") || !strings.Contains(err.Error(), "vanguard init") {
+		t.Fatalf("fatal must name the path and the recovery, got: %v", err)
+	}
+}

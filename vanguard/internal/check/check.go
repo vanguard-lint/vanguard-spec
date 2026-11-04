@@ -294,6 +294,11 @@ func (e *Engine) evaluateObserved(doc *docmodel.Doc, entry lockfile.Entry, d *Do
 		}
 		if len(dirty) > 0 {
 			d.Status = StatusDirty
+			// A machine consumer must not need a second observe run to
+			// learn what churned: the what rides on the document, the next
+			// command rides in its hints.
+			d.ChangedPaths = dirty
+			d.Hints = append(d.Hints, "commit or stash the churn in the watch scope, then re-run check")
 			return *d
 		}
 	}
