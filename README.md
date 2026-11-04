@@ -12,7 +12,7 @@
   ·
   <a href="https://github.com/vanguard-lint/vanguard-spec#readme">README</a>
   ·
-  <a href="https://github.com/vanguard-lint/vanguard-spec/blob/main/docs/designs/vanguard.md">DESIGN</a>
+  <a href="https://github.com/vanguard-lint/vanguard-spec/blob/main/.vanguard/docs/design/vanguard.md">DESIGN</a>
   ·
   <a href="https://vanguard-lint.github.io/blog/"><strong>BLOG</strong></a>
 </p>
@@ -137,7 +137,7 @@ Structure errors are always fatal; per-document staleness composes into the exit
 
 ## Learn more
 
-- [Design document](https://github.com/vanguard-lint/vanguard-spec/blob/main/docs/designs/vanguard.md) — the full contract: CLI surface, lock schema, exit bits.
+- [Design document](https://github.com/vanguard-lint/vanguard-spec/blob/main/.vanguard/docs/design/vanguard.md) — the full contract: CLI surface, lock schema, exit bits.
 - [Blog](https://vanguard-lint.github.io/blog/) — why spec staleness is a build problem, and how the harness is built.
 - [Contributing](CONTRIBUTING.md) and [security policy](SECURITY.md).
 
