@@ -22,7 +22,8 @@ that is identical in JSON and YAML, with exit bits composing by OR.
   lock with `LockSeen=false`, a corrupt one is fatal [engine.go:Load].
   Load is also the structure gate: a document without `schema:` is fatal,
   `none` opts out explicitly, any other name must resolve to a schema file
-  (missing, corrupt, or regex-invalid is fatal), and its x-vanguard
+  (missing, corrupt, or regex-invalid is fatal), a profile declaring
+  `max_depth` below 0 or above the 32 cap is fatal, and its x-vanguard
   violations land in `StructureViolations` [engine.go:Load].
 - `Check(Selection) (*Result, error)` — dispatches to checkAll/checkDoc/
   checkPath/checkRange; unknown mode is a usage error [check.go:Check].
@@ -40,11 +41,12 @@ that is identical in JSON and YAML, with exit bits composing by OR.
   referenced-but-not-run bindings; direct-argv execution of allowlisted
   commands, exit code is the only decision input
   [bindings.go:RunBindings, check.go:ApplyBindings].
-- `Render(env, format)` — json, yaml, or text; unknown format is a usage
-  error [render.go:Render].
+- `Render(env, format)` — json, yaml, text, or pretty; pretty collapses to
+  the text rendering when stdout is piped or NoColor is set; unknown format
+  is a usage error [render.go:Render].
 - `Envelope` — mode, schema, exit_bits, documents[], unwatched[],
-  unobserved[], affected_in_range[], lock_lost, hints[], lock, refused[],
-  pruned[] [envelope.go:Envelope].
+  unobserved[], affected_in_range[], lock_lost, warnings[], hints[], lock,
+  refused[], pruned[] [envelope.go:Envelope].
 
 ## Invariants
 
@@ -63,16 +65,18 @@ that is identical in JSON and YAML, with exit bits composing by OR.
 - Attestation monotonicity: a timestamp before the previous observed_at is
   refused; an `--at` beyond clock_skew_tolerance in the future is refused
   [observe.go:attest].
-- Observe preconditions: HEAD exists, watch scope dirty-free, document clean,
-  non-empty scope — each refusal carries its reason and hint; dirty scope
-  refusals also name the offending paths; a document violating its declared
-  schema is refused (attesting garbage would launder it into fresh)
-  [observe.go:attest].
+- Observe preconditions: HEAD exists, no merge or rebase in progress (a
+  mid-merge run is refused — attesting over an unstable worktree would
+  launder it), watch scope dirty-free, document clean, non-empty scope —
+  each refusal carries its reason and hint; dirty scope refusals also name
+  the offending paths; a detached HEAD warns but proceeds; a document
+  violating its declared schema is refused (attesting garbage would launder
+  it into fresh) [observe.go:attest].
 - Structure violations surface per document as {rule, file, line, message}
   with rules structure_missing_section, structure_section_order,
   structure_duplicate_section, structure_missing_citation,
-  structure_schema_format_mismatch, and always set the fatal bit
-  [check.go:applyStructure].
+  structure_schema_format_mismatch, structure_max_depth, and always set the
+  fatal bit [check.go:applyStructure].
 - `--all` attests only the currently unobserved set, never stale documents
   [observe.go:Observe].
 - Bindings never interpolate a shell and their results never become
