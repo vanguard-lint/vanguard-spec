@@ -73,6 +73,32 @@ func TestInvalidCitationPatternIsFatal(t *testing.T) {
 	}
 }
 
+func TestMaxDepthCapIsConfigValidation(t *testing.T) {
+	dir := writeSchema(t, "deep", `{"x-vanguard": {"max_depth": 33}}`)
+	if _, err := Load(dir, "deep"); err == nil || !strings.Contains(err.Error(), "cap is 32") {
+		t.Fatalf("max_depth over the cap must fail closed at load, got %v", err)
+	}
+	dir = writeSchema(t, "neg", `{"x-vanguard": {"max_depth": -1}}`)
+	if _, err := Load(dir, "neg"); err == nil || !strings.Contains(err.Error(), "negative") {
+		t.Fatalf("negative max_depth must fail closed at load, got %v", err)
+	}
+}
+
+func TestMaxDepthEnforced(t *testing.T) {
+	p := &Profile{MaxDepth: 3}
+	violations := vmd("d.md", doc("# t\n\n## ok\n\n#### too deep\n"), p)
+	if len(violations) != 1 || violations[0].Rule != "structure_max_depth" || violations[0].Line != 5 {
+		t.Fatalf("depth-4 heading must violate max_depth 3 at line 5, got %v", violations)
+	}
+	if got := vmd("d.md", doc("# t\n\n## ok\n\n### fine\n"), p); len(got) != 0 {
+		t.Fatalf("depth-3 heading is within max_depth, got %v", got)
+	}
+	// Shebangs and tags are not ATX headings.
+	if got := vmd("d.md", doc("#!/usr/bin/env sh\n####not-a-heading\n"), p); len(got) != 0 {
+		t.Fatalf("non-ATX # lines must not violate, got %v", got)
+	}
+}
+
 func TestExistenceOnlySchemaValidatesNothing(t *testing.T) {
 	dir := writeSchema(t, "thin", existenceOnly)
 	p, err := Load(dir, "thin")

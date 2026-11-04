@@ -20,6 +20,7 @@ import (
 type Profile struct {
 	Format           string   `json:"format"`            // "markdown"; empty means the sections apply to markdown too
 	RequiredSections []string `json:"required_sections"` // H2 titles, in order
+	MaxDepth         int      `json:"max_depth"`         // deepest allowed heading level; 0 = unchecked; validation cap 32
 	CitationSections []string `json:"citation_sections"` // H2 titles whose bullets must carry a citation
 	CitationPattern  string   `json:"citation_pattern"`  // regex every bullet in a citation section must match
 }
@@ -58,6 +59,12 @@ func Load(schemasDir, name string) (*Profile, error) {
 		if _, err := regexp.Compile(p.CitationPattern); err != nil {
 			return nil, fmt.Errorf("schema %q has an invalid citation_pattern: %w", name, err)
 		}
+	}
+	if p.MaxDepth < 0 {
+		return nil, fmt.Errorf("schema %q declares a negative max_depth", name)
+	}
+	if p.MaxDepth > 32 {
+		return nil, fmt.Errorf("schema %q declares max_depth %d — the validation cap is 32", name, p.MaxDepth)
 	}
 	return p, nil
 }
@@ -102,6 +109,30 @@ func Validate(file string, body []byte, prof *Profile, format string) []Violatio
 	at := func(title string) (int, bool) {
 		line, ok := first[title]
 		return line, ok
+	}
+
+	// Heading depth: a declared max_depth bounds the deepest ATX heading
+	// level; exceeding it is a finding (the 32-entry validation cap lives
+	// in Load — config validation, not per-document work).
+	if prof.MaxDepth > 0 {
+		for i, line := range strings.Split(string(body), "\n") {
+			if !strings.HasPrefix(line, "#") {
+				continue
+			}
+			level := len(line) - len(strings.TrimLeft(line, "#"))
+			rest := line[level:]
+			if len(rest) > 0 && rest[0] != ' ' {
+				continue // not an ATX heading (shebang, tag, ...)
+			}
+			if level > prof.MaxDepth {
+				out = append(out, Violation{
+					Rule:    "structure_max_depth",
+					File:    file,
+					Line:    i + 1,
+					Message: fmt.Sprintf("heading level %d exceeds the declared max_depth %d", level, prof.MaxDepth),
+				})
+			}
+		}
 	}
 
 	// Required sections: present, in order, no duplicates.
