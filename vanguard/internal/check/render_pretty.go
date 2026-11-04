@@ -18,6 +18,7 @@ import (
 // renderText when stdout is not a terminal, so pipes and CI logs stay clean.
 // Presentation only: json, yaml, exit bits, and the envelope contract are
 // untouched.
+
 // NoColor disables ANSI styling in the pretty renderer: set by the
 // --no-color flag, or by the NO_COLOR environment convention (present at
 // all). With it, pretty degrades to the plain text rendering — piped and

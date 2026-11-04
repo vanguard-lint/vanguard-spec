@@ -628,10 +628,7 @@ func TestBindingsPendingOnUnobserved(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var docs []Document
-	for _, d := range res.Envelope.Documents {
-		docs = append(docs, d)
-	}
+	docs := res.Envelope.Documents
 	if len(docs) != 1 || docs[0].Status != StatusUnobserved {
 		t.Fatalf("document must be unobserved: %+v", docs)
 	}

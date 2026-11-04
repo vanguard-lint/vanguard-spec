@@ -120,10 +120,10 @@ func checkCmd() *cobra.Command {
 			}
 
 			sel := check.Selection{
-				Strict:           strict,
-				FailOnAffected:   failOnAffected,
-				RunBindings:      runBindings,
-				MaxRecoveryWalk:  maxRecovery,
+				Strict:          strict,
+				FailOnAffected:  failOnAffected,
+				RunBindings:     runBindings,
+				MaxRecoveryWalk: maxRecovery,
 			}
 			var mode string
 			switch {
