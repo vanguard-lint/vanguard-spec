@@ -18,12 +18,12 @@ deterministic, and located.
 
 - `Load(schemasDir, name) (*Profile, error)` — reads
   `<schemasDir>/<name>.schema.json`, rejects invalid id grammar, fails on
-  missing files, non-JSON bodies, and an uncompilable citation_pattern; a
-  schema without an x-vanguard block binds existence only
-  [structure.go:Load].
-- `Profile{Format, RequiredSections, CitationSections, CitationPattern}` —
-  the machine-enforceable projection of the schema's x-vanguard block
-  [structure.go:Profile].
+  missing files, non-JSON bodies, an uncompilable citation_pattern, and a
+  `max_depth` below 0 or above the 32 validation cap; a schema without an
+  x-vanguard block binds existence only [structure.go:Load].
+- `Profile{Format, RequiredSections, CitationSections, CitationPattern,
+  MaxDepth}` — the machine-enforceable projection of the schema's x-vanguard
+  block; `MaxDepth` 0 means unchecked [structure.go:Profile].
 - `Validate(file, body, prof, format) []Violation` — returns every finding
   for one document body; a non-markdown body under a markdown contract is a
   format-mismatch finding; a nil profile validates nothing
@@ -42,6 +42,9 @@ deterministic, and located.
   violations point at the misplaced heading [structure.go:Validate].
 - In a citation section, every `- ` bullet must match the citation pattern;
   violations point at the uncited line [structure.go:Validate].
+- A declared `max_depth` bounds the deepest ATX heading level; a deeper
+  heading violates `structure_max_depth` at that heading's line
+  [structure.go:Validate].
 - Findings are deterministic for a given input — no map iteration order
   leaks into results [structure.go:Validate].
 
@@ -53,6 +56,7 @@ Reads schema files under the schemas directory (read-only I/O)
 ## Verification
 
 Missing/corrupt schema fatality, invalid citation pattern, existence-only
-schemas, id grammar, missing/order/duplicate sections, uncited claims with
-exact lines, valid-document passes, case-sensitive titles, format mismatch,
-and the nil profile [structure_test.go].
+schemas, id grammar, max_depth cap rejection and heading-depth violations,
+missing/order/duplicate sections, uncited claims with exact lines,
+valid-document passes, case-sensitive titles, format mismatch, and the nil
+profile [structure_test.go].
