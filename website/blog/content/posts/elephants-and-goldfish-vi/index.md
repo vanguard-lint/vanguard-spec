@@ -125,4 +125,4 @@ Dave Rensin đã nói rằng thiết kế là code mới. Tôi chỉ muốn thê
 
 ## Tải về
 
-Vanguard là mã nguồn mở Apache-2.0, viết bằng Go, không phụ thuộc runtime. Tải binary tại [trang releases](https://github.com/vanguard-lint/vanguard-spec/releases) (v0.2.0 vừa phát hành tuần này), đọc [tài liệu thiết kế](https://github.com/vanguard-lint/vanguard-spec/blob/main/docs/designs/vanguard.md), hoặc xem [mã nguồn](https://github.com/vanguard-lint/vanguard-spec) — engine tự kiểm tra store của chính nó ở mỗi commit, nên README bạn đọc ở đó đã được xác nhận còn tươi.
+Vanguard là mã nguồn mở Apache-2.0, viết bằng Go, không phụ thuộc runtime. Tải binary tại [trang releases](https://github.com/vanguard-lint/vanguard-spec/releases) (v0.2.0 vừa phát hành tuần này), đọc [tài liệu thiết kế](https://github.com/vanguard-lint/vanguard-spec/blob/main/.vanguard/docs/design/vanguard.md), hoặc xem [mã nguồn](https://github.com/vanguard-lint/vanguard-spec) — engine tự kiểm tra store của chính nó ở mỗi commit, nên README bạn đọc ở đó đã được xác nhận còn tươi.

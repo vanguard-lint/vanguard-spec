@@ -125,4 +125,4 @@ Dave Rensin said design is the new code. I'd add one clause: **design that has g
 
 ## Where to get it
 
-Vanguard is Apache-2.0, written in Go, with no runtime dependencies. Grab a binary from the [releases page](https://github.com/vanguard-lint/vanguard-spec/releases) (v0.2.0 shipped this week), read the [design document](https://github.com/vanguard-lint/vanguard-spec/blob/main/docs/designs/vanguard.md), or browse the [source](https://github.com/vanguard-lint/vanguard-spec) — the engine checks its own store on every commit, so the README you read there is attested fresh.
+Vanguard is Apache-2.0, written in Go, with no runtime dependencies. Grab a binary from the [releases page](https://github.com/vanguard-lint/vanguard-spec/releases) (v0.2.0 shipped this week), read the [design document](https://github.com/vanguard-lint/vanguard-spec/blob/main/.vanguard/docs/design/vanguard.md), or browse the [source](https://github.com/vanguard-lint/vanguard-spec) — the engine checks its own store on every commit, so the README you read there is attested fresh.
