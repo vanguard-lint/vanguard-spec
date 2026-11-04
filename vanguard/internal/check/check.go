@@ -3,6 +3,7 @@ package check
 import (
 	"fmt"
 	"os"
+	"sort"
 	"time"
 
 	"github.com/vanguard-lint/vanguard/internal/docmodel"
@@ -22,6 +23,38 @@ type Result struct {
 // Selection: all documents (mode all), one id or docs/ path (mode doc), a
 // path reverse lookup (mode path), or a ref range (mode range).
 func (e *Engine) Check(selection Selection) (*Result, error) {
+	res, err := e.check(selection)
+	if err != nil {
+		return nil, err
+	}
+	// Store-level advisories ride on every check — never an exit bit.
+	res.Envelope.Warnings = append(res.Envelope.Warnings, e.advisories()...)
+	return res, nil
+}
+
+// advisories collects the advisory warnings every check carries: discovery
+// skips (file + reason) and orphaned lock entries whose id no longer exists
+// in discovery.
+func (e *Engine) advisories() []string {
+	var out []string
+	for _, w := range e.Warnings {
+		out = append(out, fmt.Sprintf("discovery skipped %s: %s", w.File, w.Reason))
+	}
+	var orphans []string
+	for id := range e.Lock.Docs {
+		if docByID(e.Docs, id) == nil {
+			orphans = append(orphans, id)
+		}
+	}
+	sort.Strings(orphans)
+	for _, id := range orphans {
+		out = append(out, fmt.Sprintf(
+			"orphaned lock entry %q — the id no longer exists in discovery; reclaim with: vanguard observe --prune", id))
+	}
+	return out
+}
+
+func (e *Engine) check(selection Selection) (*Result, error) {
 	switch selection.Mode {
 	case ModeAll:
 		return e.checkAll(selection)
@@ -114,7 +147,7 @@ func (e *Engine) checkAll(sel Selection) (*Result, error) {
 
 	// Lost lock: lockfile absent while every discovered document reports
 	// unobserved — sets the stale bit by default, all mode only.
-	if e.lockLost(unobservedCount) {
+	if e.lockLost(unobservedCount, len(env.Unwatched)) {
 		env.LockLost = true
 		bits |= BitStale
 		env.Hints = append(env.Hints,
@@ -153,6 +186,10 @@ func (e *Engine) evaluate(doc *docmodel.Doc, sel Selection) (Document, bool) {
 		d.Status = StatusUnobserved
 		d.Hints = append(d.Hints,
 			fmtHint("never attested — run: vanguard observe %s", doc.ID))
+		if len(doc.Bindings) > 0 && !sel.RunBindings {
+			// Referenced-but-not-run: pending even without a baseline.
+			d.Bindings = e.BindingsFor(doc.ID, doc.Bindings)
+		}
 		return d, true
 	}
 	if len(doc.Bindings) > 0 && !sel.RunBindings {
@@ -217,7 +254,7 @@ func (e *Engine) evaluateObserved(doc *docmodel.Doc, entry lockfile.Entry, d *Do
 	// snapshot) against the lock. History is attribution only.
 	if hasPaths {
 		if e.Prov.GitMode() {
-			stalePaths, changed, commits := e.gitPathsAxis(doc, entry, d, maxWalk)
+			stalePaths, changed, commits, kindMismatch := e.gitPathsAxis(doc, entry, d, maxWalk)
 			if len(changed) > 0 {
 				// Attribution is informational on every path — fresh or
 				// stale, it names what touched the scope.
@@ -227,8 +264,12 @@ func (e *Engine) evaluateObserved(doc *docmodel.Doc, entry lockfile.Entry, d *Do
 			if stalePaths {
 				stale = true
 				d.TriggeredWatches = append(d.TriggeredWatches, "paths")
-				d.Hints = append(d.Hints,
-					fmtHint("inspect the commits, update the document, commit, then run: vanguard observe %s", doc.ID))
+				if !kindMismatch {
+					// Commit-hunting advice only fits a real net change;
+					// a kind mismatch moved the baseline itself.
+					d.Hints = append(d.Hints,
+						fmtHint("inspect the commits, update the document, commit, then run: vanguard observe %s", doc.ID))
+				}
 			}
 		} else {
 			if e.hashPathsAxis(doc, entry) {
@@ -245,57 +286,77 @@ func (e *Engine) evaluateObserved(doc *docmodel.Doc, entry lockfile.Entry, d *Do
 		return *d
 	}
 	// Dirty may only hold when staleness does not: uncommitted churn in the
-	// watch scope.
-	if dirty, err := e.Prov.Dirty(doc.PathGlobs); err == nil && len(dirty) > 0 {
-		d.Status = StatusDirty
-		return *d
+	// watch scope. Provider warnings (the blobless-clone loud case) ride
+	// along as hints — advisory, never a status.
+	if dirty, warnings, err := e.Prov.Dirty(doc.PathGlobs); err == nil {
+		if len(warnings) > 0 {
+			d.Hints = append(d.Hints, warnings...)
+		}
+		if len(dirty) > 0 {
+			d.Status = StatusDirty
+			return *d
+		}
 	}
 	d.Status = StatusFresh
 	return *d
 }
 
 // gitPathsAxis decides the paths axis and attribution for git mode.
-func (e *Engine) gitPathsAxis(doc *docmodel.Doc, entry lockfile.Entry, d *Document, maxWalk int) (stale bool, changed, commits []string) {
+func (e *Engine) gitPathsAxis(doc *docmodel.Doc, entry lockfile.Entry, d *Document, maxWalk int) (stale bool, changed, commits []string, kindMismatch bool) {
 	head, err := e.Prov.HEAD()
 	if err != nil || head == "" {
 		// Unborn target: nothing committed — the scope cannot match the
 		// attested state.
-		return true, nil, nil
+		return true, nil, nil, false
 	}
 	current, err := e.Prov.ScopeHash(doc.PathGlobs)
 	if err != nil {
-		return true, nil, nil
+		return true, nil, nil, false
 	}
 	if !scope.SameKind(current, entry.ScopeTreeHash) {
-		// Kind mismatch means the globs changed — stale with a re-observe
-		// hint, never an internal error.
-		d.Hints = append(d.Hints, "the watch globs changed since the attestation — re-run observe")
-		return true, nil, nil
+		// Kind mismatch means the globs or the scope-hash scheme changed —
+		// stale with a re-run-observe hint, never an internal error. No
+		// commit attribution: there is nothing to inspect, the attestation
+		// baseline itself moved.
+		d.Hints = append(d.Hints, "the watch globs or the scope-hash scheme changed since the attestation — re-run observe")
+		return true, nil, nil, true
 	}
 	if current == entry.ScopeTreeHash {
 		// Net-fresh: the state matches the attestation. Attribution stays
 		// informational — A -> B -> A is fresh AND names the commits that
 		// touched the scope since the anchor (Q-1.1.b-2).
-		if reachable, err := e.Prov.AnchorReachable(entry.Anchor); err == nil && reachable {
+		reachable, rerr := e.Prov.AnchorReachable(entry.Anchor)
+		if rerr == nil && reachable {
 			changed, commits, _ = e.Prov.Attribution(entry.Anchor, head, doc.PathGlobs)
+		} else if rerr == nil {
+			// Unreachable anchor under an identical net state (amend/squash
+			// rewrote history): the design's recovery flow still applies —
+			// a baseline matched inside the bound is a recovered anchor,
+			// exhaustion is an orphaned one. Either way the note surfaces;
+			// history rewriting under a fresh attestation is never silent.
+			if recovered, werr := e.Prov.RecoveredAnchor(doc.PathGlobs, entry.ScopeTreeHash, e.recoveryBound(maxWalk)); werr == nil && recovered != "" {
+				d.AnchorRecovered = true
+			} else {
+				d.AnchorOrphaned = true
+			}
 		}
-		return false, changed, commits
+		return false, changed, commits, false
 	}
 	// Stale. Attribution availability follows the three-path resolution;
 	// status is already decided by the net-state rule.
 	reachable, err := e.Prov.AnchorReachable(entry.Anchor)
 	if err == nil && reachable {
 		changed, commits, _ = e.Prov.Attribution(entry.Anchor, head, doc.PathGlobs)
-		return true, changed, commits
+		return true, changed, commits, false
 	}
 	recovered, err := e.Prov.RecoveredAnchor(doc.PathGlobs, entry.ScopeTreeHash, e.recoveryBound(maxWalk))
 	if err == nil && recovered != "" {
 		d.AnchorRecovered = true
 		changed, commits, _ = e.Prov.Attribution(recovered, head, doc.PathGlobs)
-		return true, changed, commits
+		return true, changed, commits, false
 	}
 	d.AnchorOrphaned = true
-	return true, nil, nil
+	return true, nil, nil, false
 }
 
 func (e *Engine) recoveryBound(maxWalk int) int {
@@ -323,8 +384,8 @@ func (e *Engine) hashPathsAxis(doc *docmodel.Doc, entry lockfile.Entry) bool {
 	return false
 }
 
-// checkDoc resolves the argument by the fixed precedence: exact document id
-// first, then a path into docs/.
+// checkDoc resolves the argument as an exact document id — the only
+// per-document selector (paths belong to check --path).
 func (e *Engine) checkDoc(sel Selection) (*Result, error) {
 	doc := docByID(e.Docs, sel.DocID)
 	if doc == nil {

@@ -62,7 +62,7 @@ func TestDirtyDetection2000FileBudget(t *testing.T) {
 		t.Fatal(err)
 	}
 	start := time.Now()
-	dirty, err := g.Dirty([]string{"src/**"})
+	dirty, _, err := g.Dirty([]string{"src/**"})
 	elapsed := time.Since(start)
 	if err != nil {
 		t.Fatal(err)
@@ -86,7 +86,7 @@ func BenchmarkDirtyDetection2000(b *testing.B) {
 	globs := []string{"src/**"}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		if _, err := g.Dirty(globs); err != nil {
+		if _, _, err := g.Dirty(globs); err != nil {
 			b.Fatal(err)
 		}
 	}

@@ -83,7 +83,7 @@ func TestScopeHashSubtreeVsEnumerated(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.HasPrefix(sub, "sha256:") {
+	if !strings.HasPrefix(sub, "sha256v2:") {
 		t.Fatalf("combined hash must be kind-prefixed: %s", sub)
 	}
 	// A different scope must hash differently.
@@ -126,28 +126,28 @@ func TestDirtyDetection(t *testing.T) {
 	p := openGit(t, root)
 
 	// Clean worktree → no churn in scope.
-	dirty, err := p.Dirty([]string{"src/payments/**"})
+	dirty, _, err := p.Dirty([]string{"src/payments/**"})
 	if err != nil || len(dirty) != 0 {
 		t.Fatalf("clean worktree: %v %v", dirty, err)
 	}
 
 	// Uncommitted churn inside the scope.
 	write(t, root, "src/payments/api.go", "package payments // changed\n")
-	dirty, err = p.Dirty([]string{"src/payments/**"})
+	dirty, _, err = p.Dirty([]string{"src/payments/**"})
 	if err != nil || len(dirty) != 1 || dirty[0] != "src/payments/api.go" {
 		t.Fatalf("dirty = %v %v", dirty, err)
 	}
 
 	// Unrelated churn stays out of the scope.
 	write(t, root, "docs/guide.md", "# changed\n")
-	dirty, err = p.Dirty([]string{"src/payments/**"})
+	dirty, _, err = p.Dirty([]string{"src/payments/**"})
 	if err != nil || len(dirty) != 1 {
 		t.Fatalf("scope filtering failed: %v", dirty)
 	}
 
 	// Untracked files count as churn (git's classification).
 	write(t, root, "src/payments/new.go", "package payments\n")
-	dirty, err = p.Dirty([]string{"src/payments/**"})
+	dirty, _, err = p.Dirty([]string{"src/payments/**"})
 	if err != nil || len(dirty) != 2 {
 		t.Fatalf("untracked must count: %v", dirty)
 	}
@@ -198,6 +198,89 @@ func TestAttribution(t *testing.T) {
 	_ = c3
 }
 
+// Chronological order: introducing commits list oldest → newest, ties
+// broken by OID — the design contract, not an alphabetical accident.
+func TestAttributionChronological(t *testing.T) {
+	root, c1 := initRepo(t)
+	p := openGit(t, root)
+	base := time.Date(2026, 1, 1, 9, 0, 0, 0, time.UTC)
+	write(t, root, "src/payments/a.go", "package payments\n")
+	w, err := p.repo.Worktree()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := w.Add("."); err != nil {
+		t.Fatal(err)
+	}
+	c2, err := w.Commit("first", &git.CommitOptions{
+		Author:            signature(),
+		Committer:         &object.Signature{Name: "t", Email: "t@x", When: base},
+		AllowEmptyCommits: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	write(t, root, "src/payments/b.go", "package payments\n")
+	if _, err := w.Add("."); err != nil {
+		t.Fatal(err)
+	}
+	c3, err := w.Commit("second", &git.CommitOptions{
+		Author:            signature(),
+		Committer:         &object.Signature{Name: "t", Email: "t@x", When: base.Add(2 * time.Hour)},
+		AllowEmptyCommits: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, commits, err := p.Attribution(c1, "", []string{"src/payments/**"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(commits) != 2 || commits[0] != c2.String() || commits[1] != c3.String() {
+		t.Fatalf("commits must read oldest → newest, got %v (want [%s %s])", commits, c2, c3)
+	}
+	// The OID tie-break: two commits with identical committer instants
+	// still yield a deterministic, OID-sorted list.
+	write(t, root, "src/payments/a.go", "package payments // v2\n")
+	if _, err := w.Add("."); err != nil {
+		t.Fatal(err)
+	}
+	c4, err := w.Commit("tie-a", &git.CommitOptions{
+		Author:            signature(),
+		Committer:         &object.Signature{Name: "t", Email: "t@x", When: base.Add(4 * time.Hour)},
+		AllowEmptyCommits: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	write(t, root, "src/payments/b.go", "package payments // v2\n")
+	if _, err := w.Add("."); err != nil {
+		t.Fatal(err)
+	}
+	c5, err := w.Commit("tie-b", &git.CommitOptions{
+		Author:            signature(),
+		Committer:         &object.Signature{Name: "t", Email: "t@x", When: base.Add(4 * time.Hour)},
+		AllowEmptyCommits: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, commits, err = p.Attribution(c1, "", []string{"src/payments/**"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(commits) != 4 {
+		t.Fatalf("expected [c2 c3 tie-a tie-b], got %v", commits)
+	}
+	tail := map[string]bool{c4.String(): true, c5.String(): true}
+	if !tail[commits[2]] || !tail[commits[3]] {
+		t.Fatalf("the equal-instant pair must fill the tail, got %v", commits)
+	}
+	if commits[2] >= commits[3] {
+		t.Fatalf("equal-instant commits must break ties by OID, got %v", commits[2:])
+	}
+}
+
 func commitAll(t *testing.T, p *GitProvider, msg string) plumbing.Hash {
 	t.Helper()
 	w, err := p.repo.Worktree()
@@ -237,13 +320,13 @@ func TestHashProvider(t *testing.T) {
 		}
 	}
 	hash, err := p.ScopeHash([]string{"src/*.go"})
-	if err != nil || !strings.HasPrefix(hash, "sha256:") {
+	if err != nil || !strings.HasPrefix(hash, "sha256v2:") {
 		t.Fatalf("scope hash = %s %v", hash, err)
 	}
 	if _, _, err := p.Attribution("a", "b", []string{"**"}); err == nil {
 		t.Fatal("attribution must be reported unavailable in hash mode")
 	}
-	if dirty, err := p.Dirty([]string{"**"}); err != nil || dirty != nil {
+	if dirty, _, err := p.Dirty([]string{"**"}); err != nil || dirty != nil {
 		t.Fatalf("hash mode has no dirty concept: %v %v", dirty, err)
 	}
 }

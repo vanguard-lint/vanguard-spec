@@ -2,6 +2,7 @@ package check
 
 import (
 	"fmt"
+	"path/filepath"
 	"time"
 
 	"github.com/vanguard-lint/vanguard/internal/docmodel"
@@ -54,12 +55,42 @@ func (e *Engine) Observe(req ObserveRequest) (*Result, error) {
 	bits := 0
 	changed := false
 
+	// Repository state guards (git mode): a half-finished merge/rebase is
+	// not a stable code state to attest — the whole run refuses. A detached
+	// HEAD is allowed but noted: the anchor describes that exact commit.
+	if gi, ok := e.Prov.(interface {
+		HeadState() (detached, midMerge bool, err error)
+	}); ok {
+		detached, midMerge, stateErr := gi.HeadState()
+		if stateErr == nil {
+			if midMerge {
+				for _, doc := range targets {
+					res.Refusals = append(res.Refusals, Refused{Doc: doc.ID,
+						Reason: "merge or rebase in progress",
+						Hints:  []string{"finalize the merge/rebase, then observe"}})
+				}
+				env.Lock = LockReport{Changed: false, Path: lockRelPath(e.LockPath)}
+				env.Refused = res.Refusals
+				env.ExitBits = bits | BitFatal
+				res.Envelope = env
+				return res, nil
+			}
+			if detached {
+				env.Warnings = append(env.Warnings,
+					"HEAD detached — anchor describes this commit, re-attest on the intended branch")
+			}
+		}
+	}
+
 	for _, doc := range targets {
 		entry, err := e.attest(doc, req.At)
 		if err != nil {
 			refusal := Refused{Doc: doc.ID, Reason: err.reason}
 			refusal.Offending = err.offending
 			refusal.Hints = append(refusal.Hints, err.hint)
+			if len(err.warns) > 0 {
+				env.Warnings = append(env.Warnings, err.warns...)
+			}
 			res.Refusals = append(res.Refusals, refusal)
 			bits |= err.bit
 			continue
@@ -71,6 +102,14 @@ func (e *Engine) Observe(req ObserveRequest) (*Result, error) {
 			ObservedAt: entry.ObservedAt,
 			Anchor:     entry.Anchor,
 		})
+		// Hash-mode bloat advisory: a repository-wide watch enumerates
+		// per-file hashes; past the bound, suggest narrowing.
+		if !e.Prov.GitMode() && len(doc.PathGlobs) > 0 {
+			if snap, snapErr := e.Prov.Snapshot(doc.PathGlobs); snapErr == nil && len(snap) > 10000 {
+				env.Warnings = append(env.Warnings, fmt.Sprintf(
+					"hash-mode scope for %s exceeds 10,000 files (%d) — consider narrowing the watch", doc.ID, len(snap)))
+			}
+		}
 	}
 
 	if changed {
@@ -84,6 +123,12 @@ func (e *Engine) Observe(req ObserveRequest) (*Result, error) {
 		e.LockSeen = true
 	}
 	env.Lock = LockReport{Changed: changed, Path: lockRelPath(e.LockPath)}
+	if changed {
+		// The lock is committed like go.sum — the write is not the end of
+		// the attestation; the commit of the lock diff is.
+		env.Hints = append(env.Hints,
+			"commit the lock: git add .vanguard/vanguard.lock && git commit")
+	}
 	env.ExitBits = bits
 	sortDocs(env.Documents)
 	env.Refused = res.Refusals
@@ -121,6 +166,7 @@ type refusal struct {
 	reason    string
 	offending []string
 	hint      string
+	warns     []string // advisory warnings riding along (blobless clone, ...)
 }
 
 // attest enforces the preconditions, then records the baseline.
@@ -184,7 +230,7 @@ func (e *Engine) attest(doc *docmodel.Doc, at time.Time) (lockfile.Entry, *refus
 		}
 		// Scope-clean precondition: never anchor against uncommitted churn.
 		if len(doc.PathGlobs) > 0 {
-			dirty, err := e.Prov.Dirty(doc.PathGlobs)
+			dirty, warnings, err := e.Prov.Dirty(doc.PathGlobs)
 			if err != nil {
 				return lockfile.Entry{}, &refusal{bit: BitFatal, reason: "IO failure",
 					hint: "the worktree state could not be read"}
@@ -195,12 +241,13 @@ func (e *Engine) attest(doc *docmodel.Doc, at time.Time) (lockfile.Entry, *refus
 					reason:    "watch scope dirty",
 					offending: dirty,
 					hint:      "commit the churn, then re-run observe",
+					warns:     warnings,
 				}
 			}
 		}
 		// The document itself must be committed in the repository that
 		// contains it. The store is not a git repository → skipped.
-		if status, err := e.Prov.FileStatus(storeRelDoc(e.StoreDir, doc.RelPath)); err == nil && status != "clean" {
+		if status, err := e.Prov.FileStatus(storeRelDoc(e.TargetDir, e.StoreDir, doc.RelPath)); err == nil && status != "clean" {
 			return lockfile.Entry{}, &refusal{
 				bit:    BitFatal,
 				reason: "document not committed",
@@ -260,6 +307,15 @@ func lockRelPath(path string) string {
 
 // storeRelDoc renders the document's path relative to the store's
 // containing repository root.
-func storeRelDoc(storeDir, rel string) string {
-	return ".vanguard/docs/" + rel
+func storeRelDoc(targetDir, storeDir, rel string) string {
+	// The document's git path inside the TARGET repository: the store's
+	// docs dir expressed relative to the target root. Root-level store →
+	// ".vanguard/docs/<rel>"; a store nested deeper inside the target keeps
+	// its full prefix; a store outside the target yields a "../" path that
+	// cannot exist at HEAD (the decoupled-store limitation — loud).
+	p, err := filepath.Rel(targetDir, filepath.Join(storeDir, "docs", rel))
+	if err != nil {
+		return ".vanguard/docs/" + rel
+	}
+	return filepath.ToSlash(p)
 }

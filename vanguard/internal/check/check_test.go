@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
+	"github.com/vanguard-lint/vanguard/internal/lockfile"
 )
 
 func sig() *object.Signature {
@@ -164,7 +165,7 @@ func TestDocumentEditMakesStale(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Editing the document without observing must go stale via the
-	// document axis — a cosmetic edit clears nothing.
+	// document axis â€” a cosmetic edit clears nothing.
 	wf(t, root, ".vanguard/docs/payments.md",
 		"---\nid: payments\nschema: none\nwatches:\n  paths: [\"src/payments/**\"]\n---\n# payments spec v2\n")
 	commitAll(t, root)
@@ -228,7 +229,7 @@ func TestObserveRefusesDirtyScope(t *testing.T) {
 
 func TestObserveRefusesUncommittedDocument(t *testing.T) {
 	root, store := scaffold(t)
-	// Uncommitted doc edit — even with a clean code scope.
+	// Uncommitted doc edit â€” even with a clean code scope.
 	wf(t, root, ".vanguard/docs/payments.md",
 		"---\nid: payments\nschema: none\nwatches:\n  paths: [\"src/payments/**\"]\n---\n# uncommitted\n")
 	e := load(t, store)
@@ -261,6 +262,74 @@ func TestLockLost(t *testing.T) {
 	}
 }
 
+// TestLockLostWithUnwatchedDoc pins the full-discovery-set reading of the
+// lost-lock signature: an unwatched document has no attestation to lose, so
+// its presence must not silence the detector when the lockfile is gone.
+func TestLockLostWithUnwatchedDoc(t *testing.T) {
+	root, store := scaffold(t)
+	wf(t, root, ".vanguard/docs/loose.md",
+		"---\nid: loose\nschema: none\n---\n# no watches declared\n")
+	commitAll(t, root)
+	if err := os.Remove(filepath.Join(store, "vanguard.lock")); err != nil {
+		t.Fatal(err)
+	}
+	e := load(t, store)
+	res, err := e.Check(Selection{Mode: ModeAll})
+	if err != nil {
+		t.Fatal(err)
+	}
+	env := res.Envelope
+	if !env.LockLost {
+		t.Fatal("lock lost must be reported even with an unwatched document")
+	}
+	if env.ExitBits&BitStale == 0 {
+		t.Fatalf("lock loss must set the stale bit by default: %d", env.ExitBits)
+	}
+}
+
+// TestScopeSchemeMigrationFailsLoud pins the scheme-migration behavior: a
+// lock written under the v1 combined digest ("sha256:") must go stale with
+// the globs-or-scheme re-run-observe hint â€” never silently fresh, and the
+// hint names the scheme, not phantom commits to inspect.
+func TestScopeSchemeMigrationFailsLoud(t *testing.T) {
+	root, store := scaffold(t)
+	wf(t, root, ".vanguard/vanguard.lock",
+		`{"version":1,"docs":{"payments":{"anchor":"0123456789abcdef0123456789abcdef01234567","observed_at":"2026-11-03T10:00:00Z","scope_tree_hash":"sha256:deadbeef","scope_file_count":1,"content_hash":"sha256:beef"}}}`)
+	commitAll(t, root)
+	e := load(t, store)
+	res, err := e.Check(Selection{Mode: ModeAll})
+	if err != nil {
+		t.Fatal(err)
+	}
+	env := res.Envelope
+	var doc *Document
+	for i := range env.Documents {
+		if env.Documents[i].Doc == "payments" {
+			doc = &env.Documents[i]
+		}
+	}
+	if doc == nil {
+		t.Fatal("payments missing from the report")
+	}
+	if doc.Status != StatusStale {
+		t.Fatalf("a v1-scheme lock must go stale: %s", doc.Status)
+	}
+	found := false
+	for _, h := range doc.Hints {
+		if strings.Contains(h, "scope-hash scheme changed") {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("migration must hint the scheme, got hints %v", doc.Hints)
+	}
+	for _, h := range doc.Hints {
+		if strings.Contains(h, "inspect the commits") {
+			t.Fatalf("a scheme migration must not send the user commit-hunting: %v", doc.Hints)
+		}
+	}
+}
+
 func TestReviewAfterFires(t *testing.T) {
 	root := t.TempDir()
 	store := filepath.Join(root, ".vanguard")
@@ -289,7 +358,7 @@ func TestReviewAfterFires(t *testing.T) {
 	if d.Status != StatusStale || !containsString(d.TriggeredWatches, "review_after") {
 		t.Fatalf("status = %s triggered = %v", d.Status, d.TriggeredWatches)
 	}
-	// Re-observe (the review act) clears the clock — the engine's clock is
+	// Re-observe (the review act) clears the clock â€” the engine's clock is
 	// the attestation source, so observe at the advanced instant.
 	e3, err := Load(store, Options{Now: later})
 	if err != nil {
@@ -523,5 +592,120 @@ func TestObserveRefusesStructureViolation(t *testing.T) {
 	}
 	if res.Envelope.ExitBits&BitFatal == 0 {
 		t.Fatalf("refusal must be fatal: bits = %d", res.Envelope.ExitBits)
+	}
+}
+
+// Advisory warnings ride on every check: an orphaned lock entry whose id
+// no longer exists in discovery is flagged, never silently kept.
+func TestOrphanLockEntryAdvisory(t *testing.T) {
+	_, store := scaffold(t)
+	e := load(t, store)
+	e.Lock.Docs["ghost"] = lockfile.Entry{ObservedAt: "2026-11-03T12:00:00Z"}
+	res, err := e.Check(Selection{Mode: ModeAll})
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, w := range res.Envelope.Warnings {
+		if strings.Contains(w, `orphaned lock entry "ghost"`) {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("orphan advisory missing from warnings: %v", res.Envelope.Warnings)
+	}
+	if res.Envelope.ExitBits != 0 {
+		t.Fatalf("advisory must never set an exit bit, got %d", res.Envelope.ExitBits)
+	}
+}
+
+// A referenced binding on an unobserved document still reports pending â€”
+// no baseline needed for the notation.
+func TestBindingsPendingOnUnobserved(t *testing.T) {
+	_, store := scaffoldBindings(t)
+	e := bindingsEngine(t, store)
+	res, err := e.Check(Selection{Mode: ModeAll})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var docs []Document
+	for _, d := range res.Envelope.Documents {
+		docs = append(docs, d)
+	}
+	if len(docs) != 1 || docs[0].Status != StatusUnobserved {
+		t.Fatalf("document must be unobserved: %+v", docs)
+	}
+	if len(docs[0].Bindings) != 1 || docs[0].Bindings[0].Name != "fail" || docs[0].Bindings[0].Status != "pending" {
+		t.Fatalf("referenced binding must report pending on an unobserved doc: %+v", docs[0].Bindings)
+	}
+}
+
+// --no-color / NO_COLOR strip ANSI from the pretty renderer: the CLICOLOR
+// escape hatch colors it, the no-color escape hatch wins back.
+func TestNoColorDegradesToText(t *testing.T) {
+	t.Setenv("CLICOLOR_FORCE", "1")
+	_, store := scaffold(t)
+	e := load(t, store)
+	res, err := e.Check(Selection{Mode: ModeAll})
+	if err != nil {
+		t.Fatal(err)
+	}
+	NoColor = false
+	colored := renderPretty(res.Envelope, e)
+	NoColor = true
+	plain := renderPretty(res.Envelope, e)
+	NoColor = false
+	if !strings.Contains(colored, "\x1b[") {
+		t.Fatal("forced-color run must carry ANSI styling")
+	}
+	if strings.Contains(plain, "\x1b[") {
+		t.Fatal("NoColor run must carry no ANSI styling")
+	}
+	if plain != renderText(res.Envelope) {
+		t.Fatal("NoColor pretty must degrade to the text rendering")
+	}
+}
+
+// Text mode must surface refusals with their reason and hints — a bare
+// "0 attested" is a silent failure (G8).
+func TestTextRenderShowsRefusals(t *testing.T) {
+	env := &Envelope{Mode: ModeObserve, Schema: SchemaVersion}
+	env.Refused = append(env.Refused, Refused{Doc: "spec", Reason: "watch scope dirty",
+		Offending: []string{"src/main.go"}, Hints: []string{"commit the churn, then re-run observe"}})
+	out := renderText(env)
+	if !strings.Contains(out, "REFUSED  spec  watch scope dirty") || !strings.Contains(out, "commit the churn") {
+		t.Fatalf("text render must surface refusals:\n%s", out)
+	}
+}
+
+// Amending the attested anchor rewrites history under an identical net
+// state: the check stays fresh (net-state rule) but must NOTE the
+// orphaned anchor — never silently green.
+func TestFreshAmendedAnchorIsNoted(t *testing.T) {
+	root, store := scaffold(t)
+	e := load(t, store)
+	if _, err := e.Observe(ObserveRequest{All: true}); err != nil {
+		t.Fatal(err)
+	}
+	repo, err := git.PlainOpen(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	w, err := repo.Worktree()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := w.Commit("amended", &git.CommitOptions{Amend: true, Author: sig(), AllowEmptyCommits: true}); err != nil {
+		t.Fatal(err)
+	}
+	e2 := load(t, store)
+	res, err := e2.Check(Selection{Mode: ModeAll})
+	if err != nil {
+		t.Fatal(err)
+	}
+	d := res.Envelope.Documents[0]
+	if d.Status != StatusFresh || !d.AnchorRecovered {
+		t.Fatalf("amended anchor must stay fresh with the recovered note, got status=%s recovered=%v orphaned=%v",
+			d.Status, d.AnchorRecovered, d.AnchorOrphaned)
 	}
 }

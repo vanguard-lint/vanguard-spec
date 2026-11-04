@@ -139,10 +139,12 @@ func (e *Engine) ContentHash(d *docmodel.Doc) string {
 }
 
 // lockLost reports the lost-lock signature: lockfile absent while every
-// discovered document reports unobserved. Judged over the full discovery
-// set; all mode only.
-func (e *Engine) lockLost(unobservedCount int) bool {
-	return !e.LockSeen && len(e.Docs) > 0 && unobservedCount == len(e.Docs)
+// discovered document reports unobserved. Unwatched documents carry no
+// attestation to lose — with the lock absent they are unobserved too — so
+// they count toward the signature. Judged over the full discovery set;
+// all mode only.
+func (e *Engine) lockLost(unobservedCount, unwatchedCount int) bool {
+	return !e.LockSeen && len(e.Docs) > 0 && unobservedCount+unwatchedCount == len(e.Docs)
 }
 
 func docByID(docs []docmodel.Doc, id string) *docmodel.Doc {

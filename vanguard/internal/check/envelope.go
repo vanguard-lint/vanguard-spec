@@ -85,6 +85,10 @@ type Envelope struct {
 	Lock    LockReport `json:"lock" yaml:"lock"`
 	Refused []Refused  `json:"refused,omitempty" yaml:"refused,omitempty"`
 	Pruned  []string   `json:"pruned,omitempty" yaml:"pruned,omitempty"`
+	// Warnings carries advisory findings (discovery skips, orphaned lock
+	// entries, oversized hash-mode scopes, blobless-clone limits) — never
+	// an exit bit, never a status.
+	Warnings []string `json:"warnings,omitempty" yaml:"warnings,omitempty"`
 }
 
 // LockReport describes the observe write.

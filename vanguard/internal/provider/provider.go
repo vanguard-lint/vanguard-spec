@@ -5,14 +5,14 @@
 package provider
 
 import (
-	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing"
@@ -36,9 +36,12 @@ type Provider interface {
 	// Snapshot returns the path → normalized content hash map of every
 	// file matching the globs (hash mode).
 	Snapshot(globs []string) (map[string]string, error)
-	// Dirty returns the uncommitted churn paths inside the globs (git
-	// mode; hash mode has no dirty concept and returns nil).
-	Dirty(globs []string) ([]string, error)
+	// Dirty returns the uncommitted churn paths inside the globs plus
+	// advisory warnings (git mode; hash mode has no dirty concept and
+	// returns nil, nil). Candidates come from the worktree status; each is
+	// confirmed by comparing worktree bytes against the HEAD blob over the
+	// Hash normalization pipeline.
+	Dirty(globs []string) (dirty, warnings []string, err error)
 	// AnchorReachable reports whether the anchor commit is an ancestor of
 	// HEAD — the fast-path condition.
 	AnchorReachable(anchor string) (bool, error)
@@ -46,8 +49,9 @@ type Provider interface {
 	// returns the first commit whose scope hash equals the lock's value.
 	RecoveredAnchor(globs []string, want string, maxWalk int) (string, error)
 	// Attribution walks from..to (to defaults to HEAD) and returns the
-	// changed paths inside the globs plus the introducing commits, oldest
-	// first. Merge commits diff against their first parent only.
+	// changed paths inside the globs plus the introducing commits oldest →
+	// newest (committer date; equal-position ties break by OID). Merge
+	// commits diff against their first parent only.
 	Attribution(from, to string, globs []string) (changedPaths, commits []string, err error)
 	// ChangedPathsBetween lists every path changed between from..to.
 	ChangedPathsBetween(from, to string) ([]string, error)
@@ -159,13 +163,21 @@ func treeEntries(t *object.Tree, prefix string) ([]scope.Entry, error) {
 // directory is gone — deterministic, and never equal to any existing subtree.
 func subtreeOID(t *object.Tree, dir string) (string, error) {
 	sub, err := t.Tree(dir)
-	if err != nil {
-		if err == object.ErrDirectoryNotFound || err == object.ErrEntryNotFound {
-			return "tree:" + emptyTreeSHA, nil
-		}
-		return "", err
+	if err == nil {
+		return "tree:" + sub.Hash.String(), nil
 	}
-	return "tree:" + sub.Hash.String(), nil
+	if err == object.ErrDirectoryNotFound || err == object.ErrEntryNotFound {
+		// The path may be a single FILE: a filter-free bare name
+		// canonicalizes to path/**, and hashing it as a missing subtree
+		// pinned the scope to the empty tree — a watched file's content
+		// changes never tripped the net-state rule (silently fresh). Hash
+		// the blob instead so a file watch is content-sensitive.
+		if entry, eerr := t.FindEntry(dir); eerr == nil && entry.Mode != filemode.Dir {
+			return "blob:" + entry.Hash.String(), nil
+		}
+		return "tree:" + emptyTreeSHA, nil
+	}
+	return "", err
 }
 
 const emptyTreeSHA = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
@@ -211,97 +223,129 @@ func walkTreeInto(t *object.Tree, prefix, glob, storeDir string, out *[]scope.En
 // own classification (untracked-not-ignored counts; ignored never appears).
 // The status is computed fresh on every call — never cached — so the
 // worktree state is current.
-func (g *GitProvider) Dirty(globs []string) ([]string, error) {
-	status, err := g.worktreeStatus()
-	if err != nil {
-		return nil, err
-	}
-	var out []string
-	for path := range status {
-		if g.storeDir != "" && (path == g.storeDir || strings.HasPrefix(path, g.storeDir+"/")) {
-			continue // vanguard's own bookkeeping is never churn
-		}
-		for _, glob := range globs {
-			if pathmatch.Match(glob, path) {
-				out = append(out, path)
-				break
-			}
-		}
-	}
-	sort.Strings(out)
-	return out, nil
-}
-
-// worktreeStatus classifies every non-clean worktree path. The authoritative
-// source is the real git CLI (`git status --porcelain`): go-git's own status
-// hashes raw worktree bytes against the index and reports phantom churn when
-// core.autocrlf renormalizes line endings — a false positive the loud-only
-// error budget does not cover (permanent phantom-dirty makes observe
-// unusable). When the git binary is unavailable the go-git status serves as
-// the fallback, phantom risk accepted and documented.
-func (g *GitProvider) worktreeStatus() (map[string]string, error) {
-	paths, err := g.porcelainStatus()
-	if err == nil {
-		return paths, nil
-	}
+//
+// Two-phase, per the design: go-git's worktree status supplies the
+// CANDIDATE set only; every candidate is then confirmed by comparing the
+// worktree bytes against the HEAD blob over the Hash normalization
+// pipeline. go-git's raw comparison hashes worktree bytes against the
+// index and reports phantom churn when core.autocrlf renormalizes line
+// endings — the normalized confirm folds CRLF to LF and filters those
+// phantoms without consulting the git CLI. Untracked files have no HEAD
+// blob and are dirty outright. A blobless clone that lacks the blob makes
+// the comparison impossible — never silently: the file is reported dirty
+// and a warning carries the hint.
+func (g *GitProvider) Dirty(globs []string) ([]string, []string, error) {
 	status, err := g.goGitStatus()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	out := map[string]string{}
+	var out, warnings []string
 	for path, s := range status {
 		if s.Staging == git.Unmodified && s.Worktree == git.Unmodified {
 			continue
 		}
-		if s.Worktree == git.Untracked || s.Staging == git.Untracked {
-			out[path] = "untracked"
-			continue
+		if g.storeDir != "" && (path == g.storeDir || strings.HasPrefix(path, g.storeDir+"/")) {
+			continue // vanguard's own bookkeeping is never churn
 		}
-		out[path] = "modified"
-	}
-	return out, nil
-}
-
-// porcelainStatus runs `git status --porcelain -z --untracked-files=all` and
-// maps every non-clean path to its classification.
-func (g *GitProvider) porcelainStatus() (map[string]string, error) {
-	gitBin, err := exec.LookPath("git")
-	if err != nil {
-		return nil, fmt.Errorf("git binary not found: %w", err)
-	}
-	cmd := exec.Command(gitBin, "-C", g.root, "status", "--porcelain", "-z",
-		"--untracked-files=all")
-	out, err := cmd.Output()
-	if err != nil {
-		return nil, fmt.Errorf("git status failed: %w", err)
-	}
-	statuses := map[string]string{}
-	records := bytes.Split(out, []byte{0})
-	for i := 0; i < len(records)-1; i++ {
-		rec := records[i]
-		if len(rec) < 4 {
-			continue // "XY path"
-		}
-		x, y := rec[0], rec[1]
-		if x == '?' && y == '?' {
-			statuses[string(rec[3:])] = "untracked"
-			continue
-		}
-		if x == '!' && y == '!' {
-			continue // ignored files never appear anyway
-		}
-		// Rename records carry "to\0from"; both refer to churn.
-		statuses[string(rec[3:])] = "modified"
-		if x == 'R' || y == 'R' || x == 'C' || y == 'C' {
-			if i+1 < len(records)-1 {
-				statuses[string(records[i+1])] = "modified"
+		claimed := false
+		for _, glob := range globs {
+			if pathmatch.Match(glob, path) {
+				claimed = true
+				break
 			}
-			i++
+		}
+		if !claimed {
+			continue
+		}
+		if s.Worktree == git.Untracked || s.Staging == git.Untracked {
+			out = append(out, path)
+			continue
+		}
+		equal, missing, err := g.worktreeMatchesHead(path)
+		if err != nil {
+			return nil, nil, err
+		}
+		if missing {
+			out = append(out, path)
+			warnings = append(warnings, fmt.Sprintf(
+				"this clone does not hold the code blob for %s — confirm in a full checkout", path))
+			continue
+		}
+		if !equal {
+			out = append(out, path)
 		}
 	}
-	return statuses, nil
+	sort.Strings(out)
+	sort.Strings(warnings)
+	return out, warnings, nil
 }
 
+// worktreeMatchesHead compares the worktree bytes of one path against the
+// HEAD blob over the Hash normalization pipeline. missing=true reports a
+// blob the clone does not hold (blobless) — the loud case, never silent.
+func (g *GitProvider) worktreeMatchesHead(path string) (equal, missing bool, err error) {
+	blob, ok, err := g.headBlob(path)
+	if err != nil {
+		return false, false, err
+	}
+	if !ok {
+		return false, true, nil
+	}
+	local, err := os.ReadFile(filepath.Join(g.root, filepath.FromSlash(path)))
+	if err != nil {
+		return false, false, err
+	}
+	return hashnorm.Sum(local) == hashnorm.Sum(blob), false, nil
+}
+
+// headBlob reads the HEAD blob content of one path. ok=false when the path
+// is absent at HEAD, or when the clone does not hold the blob (blobless).
+func (g *GitProvider) headBlob(path string) ([]byte, bool, error) {
+	tree, err := g.headTree()
+	if err != nil {
+		return nil, false, err
+	}
+	t := tree
+	parts := strings.Split(path, "/")
+	for i, part := range parts {
+		if i == len(parts)-1 {
+			for j := range t.Entries {
+				e := &t.Entries[j]
+				if e.Name != part || e.Mode == filemode.Dir {
+					continue
+				}
+				blob, err := g.repo.BlobObject(e.Hash)
+				if err != nil {
+					if errors.Is(err, plumbing.ErrObjectNotFound) {
+						return nil, false, nil
+					}
+					return nil, false, err
+				}
+				r, err := blob.Reader()
+				if err != nil {
+					return nil, false, err
+				}
+				defer func() { _ = r.Close() }()
+				data, readErr := io.ReadAll(r)
+				if readErr != nil {
+					return nil, false, readErr
+				}
+				return data, true, nil
+			}
+			return nil, false, nil
+		}
+		t, err = t.Tree(part)
+		if err != nil {
+			return nil, false, nil // path absent at HEAD
+		}
+	}
+	return nil, false, nil
+}
+
+// goGitStatus classifies every worktree path via go-git. Used as the
+// candidate generator only — its raw byte-vs-index comparison reports
+// phantom churn under core.autocrlf, which Dirty's normalized confirm
+// filters.
 func (g *GitProvider) goGitStatus() (git.Status, error) {
 	w, err := g.repo.Worktree()
 	if err != nil {
@@ -310,16 +354,54 @@ func (g *GitProvider) goGitStatus() (git.Status, error) {
 	return w.Status()
 }
 
-// FileStatus reports git's classification of one worktree path.
+// FileStatus reports the worktree classification of one path: "clean" when
+// the worktree bytes match the HEAD blob over the Hash normalization
+// pipeline, "untracked" when HEAD holds no such path, and "modified" when
+// the normalized contents differ. The normalized compare is immune to
+// core.autocrlf phantom churn.
 func (g *GitProvider) FileStatus(rel string) (string, error) {
-	status, err := g.worktreeStatus()
+	equal, missing, err := g.worktreeMatchesHead(rel)
 	if err != nil {
 		return "", err
 	}
-	if s, ok := status[rel]; ok {
-		return s, nil
+	if missing {
+		return "untracked", nil
 	}
-	return "clean", nil
+	if equal {
+		return "clean", nil
+	}
+	return "modified", nil
+}
+
+// HeadState reports HEAD detachment and whether a merge or rebase is in
+// progress (the .git state files exist). Detached: HEAD resolves directly
+// to a commit instead of a branch ref. A linked worktree's `.git` file
+// (gitdir pointer) is followed for the marker checks.
+func (g *GitProvider) HeadState() (detached, midMerge bool, err error) {
+	ref, headErr := g.repo.Head()
+	if headErr != nil {
+		return false, false, headErr
+	}
+	detached = ref.Name() == plumbing.HEAD
+	dotgit := filepath.Join(g.root, ".git")
+	if fi, statErr := os.Stat(dotgit); statErr == nil && !fi.IsDir() {
+		if b, readErr := os.ReadFile(dotgit); readErr == nil {
+			line := strings.TrimSpace(string(b))
+			if p, ok := strings.CutPrefix(line, "gitdir: "); ok {
+				if filepath.IsAbs(p) {
+					dotgit = p
+				} else {
+					dotgit = filepath.Join(g.root, p)
+				}
+			}
+		}
+	}
+	for _, marker := range []string{"MERGE_HEAD", "rebase-merge", "rebase-apply"} {
+		if _, statErr := os.Stat(filepath.Join(dotgit, marker)); statErr == nil {
+			midMerge = true
+		}
+	}
+	return detached, midMerge, nil
 }
 
 // AnchorReachable walks all parents from HEAD (visited set; the walk is the
@@ -426,22 +508,46 @@ func (g *GitProvider) ScopeHashAt(tree *object.Tree, globs []string) (string, er
 }
 
 // Attribution walks from..to and collects changed paths and introducing
-// commits inside the globs, oldest first.
+// commits inside the globs. Commits are sorted oldest → newest
+// (chronological reading order; equal-position ties break by OID
+// lexicographically). Merge commits diff against their first parent only.
 func (g *GitProvider) Attribution(from, to string, globs []string) ([]string, []string, error) {
+	// Baseline: every commit reachable from `from` is the anchor's side of
+	// history. The walk stops at the first commit in this set, so the
+	// fast-path attribution matches the anchor..HEAD revwalk semantics even
+	// when the anchor reached HEAD only through a merge's second parent
+	// (a regular merge, not a squash): the first-parent descent from HEAD
+	// stops at the branch point instead of walking to the root.
+	baseline := map[plumbing.Hash]bool{}
 	if from != "" {
 		fromHash, resolveErr := g.resolveRef(from)
 		if resolveErr != nil {
 			return nil, nil, resolveErr
 		}
-		from = fromHash.String()
+		stack := []plumbing.Hash{fromHash}
+		for len(stack) > 0 {
+			h := stack[len(stack)-1]
+			stack = stack[:len(stack)-1]
+			if baseline[h] {
+				continue
+			}
+			baseline[h] = true
+			c, err := g.repo.CommitObject(h)
+			if err != nil {
+				continue // truncated history (shallow): stop expanding
+			}
+			stack = append(stack, c.ParentHashes...)
+		}
 	}
 	changedSet := map[string]bool{}
 	commitSet := map[string]bool{}
+	commitTimes := map[string]time.Time{}
 
 	var walk func(h plumbing.Hash) error
 	walk = func(h plumbing.Hash) error {
-		// stop at `from`: its own state is the baseline, never churn
-		if from != "" && h.String() == from {
+		// stop at the anchor's side of history: its own state is the
+		// baseline, never churn
+		if baseline[h] {
 			return nil
 		}
 		commit, err := g.repo.CommitObject(h)
@@ -486,6 +592,7 @@ func (g *GitProvider) Attribution(from, to string, globs []string) ([]string, []
 		}
 		if touched {
 			commitSet[commit.Hash.String()] = true
+			commitTimes[commit.Hash.String()] = commit.Committer.When
 		}
 		if commit.NumParents() == 0 {
 			return nil
@@ -513,7 +620,15 @@ func (g *GitProvider) Attribution(from, to string, globs []string) ([]string, []
 	paths := keysOf(changedSet)
 	sort.Strings(paths)
 	commits := keysOf(commitSet)
-	sort.Strings(commits) // oldest→newest refinement happens at the engine layer
+	// oldest → newest (chronological reading order); equal-position ties
+	// break by OID lexicographically.
+	sort.Slice(commits, func(i, j int) bool {
+		ti, tj := commitTimes[commits[i]], commitTimes[commits[j]]
+		if !ti.Equal(tj) {
+			return ti.Before(tj)
+		}
+		return commits[i] < commits[j]
+	})
 	return paths, commits, nil
 }
 
@@ -674,7 +789,7 @@ func (h *HashProvider) ScopeHash(globs []string) (string, error) {
 	return scope.Combine(pairs), nil
 }
 
-func (h *HashProvider) Dirty([]string) ([]string, error) { return nil, nil }
+func (h *HashProvider) Dirty([]string) ([]string, []string, error) { return nil, nil, nil }
 
 func (h *HashProvider) AnchorReachable(string) (bool, error) { return false, nil }
 
@@ -689,6 +804,8 @@ func (h *HashProvider) ChangedPathsBetween(_, _ string) ([]string, error) {
 }
 
 func (h *HashProvider) FileStatus(string) (string, error) { return "clean", nil }
+
+func (h *HashProvider) HeadState() (bool, bool, error) { return false, false, nil }
 
 // fileSum hashes a file through the streaming normalization pipeline.
 func fileSum(path string) (string, error) {

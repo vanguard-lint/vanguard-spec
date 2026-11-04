@@ -73,10 +73,10 @@ func TestEngineImportsNoNetwork(t *testing.T) {
 	}
 }
 
-// Q-3.a-2 / Q-5.b-2: os/exec appears in exactly two sanctioned places —
-// bindings.go (allowlisted commands) and provider.go (the git CLI invoked
-// with a fixed argv) — and no engine file ever routes a command through a
-// shell.
+// Q-3.a-2 / Q-5.b-2: os/exec appears in exactly one sanctioned place —
+// bindings.go (allowlisted commands) — and no engine file ever routes a
+// command through a shell. The provider works through the go-git object
+// database and spawns nothing.
 func TestBindingsAreTheOnlyExecAndNeverShell(t *testing.T) {
 	srcs := engineSources(t,
 		"internal/check", "internal/docmodel", "internal/provider",
@@ -84,13 +84,12 @@ func TestBindingsAreTheOnlyExecAndNeverShell(t *testing.T) {
 		"internal/hashnorm", "internal/config", "internal/pathmatch",
 		"internal/duration")
 	sanctioned := map[string]bool{
-		"internal/check/bindings.go":    true,
-		"internal/provider/provider.go": true,
+		"internal/check/bindings.go": true,
 	}
 	for file, src := range srcs {
 		for _, imp := range importsOf(t, file, src) {
 			if imp == "os/exec" && !sanctioned[file] {
-				t.Errorf("%s imports os/exec — only bindings.go and provider.go may execute", file)
+				t.Errorf("%s imports os/exec — only bindings.go may execute", file)
 			}
 		}
 		// No shell ever: neither as an argv[0] literal nor as a flag pair.
@@ -99,15 +98,6 @@ func TestBindingsAreTheOnlyExecAndNeverShell(t *testing.T) {
 				t.Errorf("%s mentions %q — execution is direct argv, never a shell", file, shell)
 			}
 		}
-	}
-	// The provider's single exec site invokes git via LookPath with a
-	// fixed argv — no interpolation.
-	prov := srcs["internal/provider/provider.go"]
-	if !strings.Contains(prov, `exec.LookPath("git")`) || !strings.Contains(prov, "exec.Command(gitBin") {
-		t.Fatal("provider must execute only the git binary via LookPath + fixed argv")
-	}
-	if strings.Count(prov, "exec.Command(") != 1 {
-		t.Fatal("provider must have exactly one exec.Command call site")
 	}
 }
 
