@@ -40,11 +40,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          # actions/checkout (shallow) re-points the tag ref at the peeled
-          # commit, dropping the tag object; fetch it back so %(contents)
-          # reads the annotation, not the commit message.
+          # .vanguard/rules/versioning.md, "Release notes": the published
+          # body is the tag annotation, never a commit message. The shallow
+          # checkout leaves a lightweight ref, so fetch the tag object and
+          # fail the run when the annotation comes back empty.
           git fetch origin "+refs/tags/${GITHUB_REF_NAME}:refs/tags/${GITHUB_REF_NAME}" --no-tags
           git tag -l "${GITHUB_REF_NAME}" --format='%(contents)' > release_notes.md
+          [ -s release_notes.md ] || { echo "release: empty annotation for ${GITHUB_REF_NAME} - refusing to publish" >&2; exit 1; }
       - name: Publish the GitHub release
         uses: softprops/action-gh-release@v2
         with:
