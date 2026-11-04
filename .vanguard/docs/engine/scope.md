@@ -13,11 +13,14 @@ The byte-exact formulas that turn a set of watched files into the
 `scope_tree_hash` stored in the lockfile: per-entry hashing, per-glob hashes
 by strategy, the multi-glob combination, and store exclusion.
 
-Formulas (package doc): `scope_tree_hash = sha256(concat over globs sorted by
-glob bytes: glob || 0x00 || per-glob-hash || 0x0A)`; the per-glob hash is a
-kind-prefixed git tree OID (subtree) or the entry-list hash
-`sha256(concat over entries sorted by path bytes: path || 0x00 || mode ||
-0x00 || content-identity || 0x0A)`.
+Formulas (package doc): `scope_tree_hash = sha256v2:hex(sha256(concat over
+globs sorted by glob bytes: glob || 0x00 || per-glob-hash || 0x0A))`; the
+per-glob hash is a kind-prefixed git tree OID (subtree) or the entry-list
+hash `sha256(concat over entries sorted by path bytes: path || 0x00 || mode
+|| 0x00 || content-identity || 0x0A)`. The combined hash is scheme-tagged
+`sha256v2:` so the scheme survives hashing: a lock written under an older
+(or future) scheme fails the SameKind check loud — stale with a re-run-
+observe hint — instead of masquerading as ordinary staleness.
 
 ## Interface
 
@@ -31,18 +34,21 @@ kind-prefixed git tree OID (subtree) or the entry-list hash
 - `HashRepositoryWide(rootEntries, storeDir)` — synthetic level-1 list, store
   excluded by name [scope.go:HashRepositoryWide].
 - `Combine(pairs) string` — per-glob results into the document scope hash,
-  sorted by canonical glob bytes [scope.go:Combine].
+  sorted by canonical glob bytes, tagged scheme v2 (`sha256v2:`)
+  [scope.go:Combine].
 - `Pair{Glob, Hash}` — one per-glob result fed to `Combine` [scope.go:Pair].
 - `FilterStore(entries, storeDir)` — prefix-based exclusion of the store
   directory [scope.go:FilterStore].
-- `SameKind(a, b) bool` — kind-prefix comparability; a mismatch means globs
-  changed (stale, re-observe hint), never an internal error [scope.go:SameKind].
+- `SameKind(a, b) bool` — kind-prefix comparability; a mismatch means the
+  globs or the scope-hash scheme changed (stale, re-observe hint), never an
+  internal error [scope.go:SameKind].
 
 ## Invariants
 
 - Both formulas are byte-exact and sort inputs first — caller order never
   matters [scope.go:HashEntries, scope.go:Combine].
-- Outputs always carry the `"sha256:"` kind prefix [scope.go:HashEntries].
+- Outputs always carry a kind prefix — `sha256:` on the entry-list hash,
+  `sha256v2:` on the combined scope hash [scope.go:HashEntries, scope.go:Combine].
 - Paths, modes, and glob text all participate: rename, mode change, or glob
   respelling each re-key the hash [scope_test.go:TestHashEntriesPathIsPartOfTheHash].
 
