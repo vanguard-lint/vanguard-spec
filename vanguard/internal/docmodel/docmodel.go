@@ -79,6 +79,14 @@ func Discover(docsRoot string, include []string, formats map[string]string) ([]D
 	var warnings []Warning
 	seen := map[string]string{} // id -> rel path
 
+	// WalkDir surfaces a missing root as a raw lstat error; the store owner
+	// needs the recovery path instead.
+	if info, statErr := os.Stat(docsRoot); statErr != nil || !info.IsDir() {
+		return nil, nil, fmt.Errorf(
+			"document root %s does not exist - no documents to discover; restore the store documents (e.g. git checkout -- %s) or run vanguard init",
+			docsRoot, docsRoot)
+	}
+
 	err := filepath.WalkDir(docsRoot, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
