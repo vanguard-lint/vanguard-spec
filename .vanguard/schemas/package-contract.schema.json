@@ -19,7 +19,7 @@
         "format": "markdown",
         "required_sections": ["Interface", "Invariants", "Side effects", "Verification"],
         "citation_sections": ["Interface", "Invariants", "Side effects"],
-        "citation_pattern": "\\[[A-Za-z0-9_./-]+\\.(go|md|yaml|json):[A-Za-z0-9_]+\\]"
+        "citation_pattern": "\\[[A-Za-z0-9_./-]+\\.(go|md|yaml|json):[A-Za-z0-9_.]+(, ?[A-Za-z0-9_./-]+\\.(go|md|yaml|json):[A-Za-z0-9_.]+)*\\]"
       },
       "required": ["h1", "required_sections", "citation_format"],
       "properties": {
