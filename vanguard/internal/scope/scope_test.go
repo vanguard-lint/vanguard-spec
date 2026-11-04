@@ -123,6 +123,15 @@ func TestCombine(t *testing.T) {
 	if single == a {
 		t.Fatal("degenerate list must differ from the pair")
 	}
+	// The digest carries its scheme tag so scheme migrations fail loud
+	// on kind mismatch instead of masquerading as ordinary staleness.
+	const schemeTag = "sha256v2:"
+	if len(a) < len(schemeTag) || a[:len(schemeTag)] != schemeTag {
+		t.Fatalf("combined digest must carry the scheme-v2 kind: %s", a)
+	}
+	if Combine(nil)[:len(schemeTag)] != schemeTag {
+		t.Fatal("empty combination must still carry the scheme tag")
+	}
 }
 
 func TestSameKind(t *testing.T) {
@@ -134,5 +143,8 @@ func TestSameKind(t *testing.T) {
 	}
 	if !SameKind("sha256:abc", "sha256:def") {
 		t.Fatal("same kind with different values stays comparable")
+	}
+	if SameKind("sha256v2:abc", "sha256:abc") {
+		t.Fatal("a scheme-v2 digest must not compare against a v1 lock")
 	}
 }

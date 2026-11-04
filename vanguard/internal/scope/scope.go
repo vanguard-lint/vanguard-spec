@@ -107,7 +107,10 @@ type Pair struct {
 }
 
 // Combine hashes the per-glob results into the document's scope hash. Globs
-// are sorted as written — the post-expansion canonical bytes.
+// are sorted as written — the post-expansion canonical bytes. The digest is
+// tagged scheme v2 so the kind survives hashing: a lock written by an older
+// scheme (or a future one) fails the SameKind check loud — stale with a
+// re-run-observe hint — instead of masquerading as ordinary staleness.
 func Combine(pairs []Pair) string {
 	sorted := make([]Pair, len(pairs))
 	copy(sorted, pairs)
@@ -123,12 +126,12 @@ func Combine(pairs []Pair) string {
 		buf = append(buf, 0x0A)
 		h.Write(buf)
 	}
-	return "sha256:" + hex.EncodeToString(h.Sum(nil))
+	return "sha256v2:" + hex.EncodeToString(h.Sum(nil))
 }
 
 // SameKind reports whether two kind-prefixed hashes are comparable. A kind
-// mismatch means the globs changed (stale, re-observe hint) — never an
-// internal error.
+// mismatch means the globs or the scope-hash scheme changed (stale, re-run-
+// observe hint) — never an internal error.
 func SameKind(a, b string) bool {
 	return kindOf(a) == kindOf(b)
 }
