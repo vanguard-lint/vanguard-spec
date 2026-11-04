@@ -21,7 +21,9 @@ warnings.
 - `Discover(docsRoot, include, formats) ([]Doc, []Warning, error)` — expands
   include globs via `pathmatch.Expand`, walks with `filepath.WalkDir` in
   lexicographic order, parses candidates, dedupes ids, returns docs sorted by
-  RelPath [docmodel.go:Discover].
+  RelPath; a missing or non-directory docs root is a fatal that names the
+  path and the recovery (restore the store documents or `vanguard init`),
+  never a raw lstat error [docmodel.go:Discover].
 - `Doc{ID, Schema, Watches, Bindings, RelPath, Format, Raw, PathGlobs,
   ReviewAfterSeconds}` — engine fields only; everything else in a document is
   user-defined and opaque [docmodel.go:Doc].
