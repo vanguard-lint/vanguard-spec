@@ -26,8 +26,10 @@ func Render(env *Envelope, format string) (string, error) {
 		return string(out), nil
 	case "text", "":
 		return renderText(env), nil
+	case "pretty":
+		return renderPretty(env, nil), nil
 	default:
-		return "", usageError("unknown format %q — want text, json, or yaml", format)
+		return "", usageError("unknown format %q — want text, pretty, json, or yaml", format)
 	}
 }
 
@@ -44,6 +46,15 @@ func renderText(env *Envelope) string {
 		if len(env.Hints) > 0 {
 			for _, h := range env.Hints {
 				fmt.Fprintf(&b, "\n %s", h)
+			}
+		}
+		for _, r := range env.Refused {
+			fmt.Fprintf(&b, "\n REFUSED  %s  %s", r.Doc, r.Reason)
+			if len(r.Offending) > 0 {
+				fmt.Fprintf(&b, "\n         offending: %s", strings.Join(r.Offending, ", "))
+			}
+			for _, h := range r.Hints {
+				fmt.Fprintf(&b, "\n         → %s", h)
 			}
 		}
 	case ModeRange:
@@ -69,6 +80,11 @@ func renderText(env *Envelope) string {
 			for _, h := range d.Hints {
 				fmt.Fprintf(&b, "\n         → %s", h)
 			}
+			if d.AnchorOrphaned {
+				fmt.Fprintf(&b, "\n         → the attested anchor is unreachable and no baseline matched — re-run observe to re-anchor")
+			} else if d.AnchorRecovered {
+				fmt.Fprintf(&b, "\n         → the attested anchor is gone; a baseline was recovered — re-run observe to re-anchor")
+			}
 		}
 		if len(env.Unobserved) > 0 {
 			fmt.Fprintf(&b, "\n UNOBSERVED  %s", strings.Join(env.Unobserved, ", "))
@@ -82,6 +98,9 @@ func renderText(env *Envelope) string {
 		for _, h := range env.Hints {
 			fmt.Fprintf(&b, "\n → %s", h)
 		}
+	}
+	for _, w := range env.Warnings {
+		fmt.Fprintf(&b, "\n WARNING  %s", w)
 	}
 	b.WriteString("\n")
 	return b.String()
