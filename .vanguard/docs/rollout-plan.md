@@ -62,11 +62,14 @@ The cheap blockers are closed. Still open, in milestone order:
 
 The versioning rule in `.vanguard/rules/versioning.md` is in force: version
 numbers come only from `vX.Y.Z` tags, release binaries are built and attached
-by the release workflow, and untagged builds report `dev`. First tagged
-release lands once W3's structure layer is in.
+by the release workflow, and untagged builds report `dev`. The pre-release
+line has started: `v0.3.0-rc.1` shipped the sha256v2 lock scheme and the
+release pipeline; `v0.3.0-rc.2` closes the audit findings. The stable `0.3.0`
+tag waits for the structure layer.
 
 ## Order
 
 W1 ratification and W2's criteria tree can start immediately and gate
-everything else. W3 continues in parallel per milestone. W4 is done except
-the first tag, which waits for the structure layer.
+everything else. W3 continues in parallel per milestone. W4's pipeline is
+proven and the pre-release line is live; the stable tag waits for the
+structure layer.
