@@ -68,8 +68,10 @@ bug, and the run must fail, never publish.
 - Plain text only: no emoji, no icons, no decorative banners.
 - An Install section lists the per-platform assets and checksum
   verification; a compare link closes the notes.
-- The extraction step fails loud when the annotation is empty — an empty
-  or fallback body is a failed release, never a published one.
+- The extraction reads the annotation from the tag object and fails loud
+  when it cannot — a lightweight tag, a missing tag object, or an empty
+  annotation each fail the release. A commit message is never a release
+  body.
 
 ## What is forbidden
 
