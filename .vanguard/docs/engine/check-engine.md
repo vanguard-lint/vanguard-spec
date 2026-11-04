@@ -52,6 +52,10 @@ that is identical in JSON and YAML, with exit bits composing by OR.
 
 - Freshness precedence: stale (any axis) over dirty (uncommitted churn only)
   over fresh [check.go:evaluateObserved].
+- A dirty document carries its what and its next command on the envelope:
+  `changed_paths` names the churned files and the document hints name the
+  recovery (`commit or stash ... then re-run check`) — a machine consumer
+  never needs a second observe run to locate the churn [check.go:checkDoc].
 - The paths axis is the net-state rule: the scope hash at HEAD against the
   lock; history is attribution only, and attribution is reported on the
   fresh net-state too (A->B->A is fresh with the introducing commits
