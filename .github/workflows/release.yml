@@ -40,6 +40,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          # actions/checkout (shallow) re-points the tag ref at the peeled
+          # commit, dropping the tag object; fetch it back so %(contents)
+          # reads the annotation, not the commit message.
+          git fetch origin "+refs/tags/${GITHUB_REF_NAME}:refs/tags/${GITHUB_REF_NAME}" --no-tags
           git tag -l "${GITHUB_REF_NAME}" --format='%(contents)' > release_notes.md
       - name: Publish the GitHub release
         uses: softprops/action-gh-release@v2
