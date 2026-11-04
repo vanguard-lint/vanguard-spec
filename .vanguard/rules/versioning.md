@@ -54,6 +54,23 @@ rule:
 4. Hotfixes branch from the released tag, fix, and land as a PATCH bump —
    never by re-releasing the same number with different bytes.
 
+## Release notes
+
+The release notes are the tag annotation: the release workflow extracts the
+annotation and publishes it as the release body. A published body that reads
+as a commit message means the extraction silently fell back — that is a
+bug, and the run must fail, never publish.
+
+- Notes speak to the user of the binary, grouped as Added / Changed /
+  Fixed / Breaking; every user-visible change is listed.
+- Each Breaking entry carries its migration step — an incompatibility
+  without a migration is an unfinished entry.
+- Plain text only: no emoji, no icons, no decorative banners.
+- An Install section lists the per-platform assets and checksum
+  verification; a compare link closes the notes.
+- The extraction step fails loud when the annotation is empty — an empty
+  or fallback body is a failed release, never a published one.
+
 ## What is forbidden
 
 - Bumping a version because a date passed, a milestone closed, or "it felt
