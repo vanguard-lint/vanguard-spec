@@ -72,6 +72,9 @@ bug, and the run must fail, never publish.
   when it cannot — a lightweight tag, a missing tag object, or an empty
   annotation each fail the release. A commit message is never a release
   body.
+- The publish step sets the body explicitly on every run: an upload step
+  that leaves an existing release body untouched re-publishes stale notes
+  under a fresh tag.
 
 ## What is forbidden
 
