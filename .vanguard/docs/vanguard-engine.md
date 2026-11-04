@@ -43,9 +43,11 @@ the design canon stays authoritative.
 - `internal/scope` - the scope-hash formulas: the sorted entry-list hash, the
   multi-glob combination, and the store-exclusion filters.
 - `internal/structure` - declared-schema enforcement: required sections,
-  order, duplicates, citation-pattern bullets, format mismatch, and the
-  declared max_depth heading bound (load-time validation cap 32), wired
-  fail-closed at load [engine.go].
+  order, duplicates, citation-pattern bullets (one claim per bullet across
+  its wrapped lines), format mismatch, and the declared max_depth heading
+  bound (load-time validation cap 32); contracts load from the top level or
+  one combinator branch, code fences are invisible to every rule, and the
+  gate is wired fail-closed at load [engine.go].
 - `internal/duration` — the review_after grammar (h, d, w, mo, y; a bare
   integer means days) plus Go-duration tunables.
 - `internal/config` — strict vanguard.yaml loading: unknown keys, anchors,
