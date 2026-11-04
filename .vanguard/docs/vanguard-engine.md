@@ -43,7 +43,8 @@ the design canon stays authoritative.
 - `internal/scope` - the scope-hash formulas: the sorted entry-list hash, the
   multi-glob combination, and the store-exclusion filters.
 - `internal/structure` - declared-schema enforcement: required sections,
-  order, duplicates, citation-pattern bullets, and format mismatch, wired
+  order, duplicates, citation-pattern bullets, format mismatch, and the
+  declared max_depth heading bound (load-time validation cap 32), wired
   fail-closed at load [engine.go].
 - `internal/duration` — the review_after grammar (h, d, w, mo, y; a bare
   integer means days) plus Go-duration tunables.
@@ -55,11 +56,14 @@ the design canon stays authoritative.
 - `internal/lockfile` — canonical lockfile serialization (sorted ids, fixed
   field order), forward-compatible unknown fields, compare-and-swap writes.
 - `internal/provider` — the git provider over go-git (tree OIDs, reachability,
-  bounded recovery, range attribution) and the hash provider over plain
-  directories; worktree status comes from the real git CLI because go-git's
-  own status reports phantom churn under core.autocrlf.
+  bounded recovery, chronological range attribution that stops at the
+  anchor's reachable set) and the hash provider over plain directories;
+  dirty detection spawns no process — go-git status supplies stat-mismatch
+  candidates only, each confirmed by comparing worktree bytes against the
+  HEAD blob over the hashnorm pipeline, so `core.autocrlf` renormalization
+  cannot report phantom churn.
 - `internal/check` — the two-phase check engine, the observe attestation
-  engine, bindings, and the output contract.
+  engine, bindings, the text and pretty renderers, and the output contract.
 
 ## Guarantees already guarded by tests
 
