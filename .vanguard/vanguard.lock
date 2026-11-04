@@ -47,13 +47,6 @@
       "scope_file_count": 1,
       "content_hash": "sha256:6500a5e014c3de7437581d7ee83c588c0a2edb2f5c56495f291431823959c3b7"
     },
-    "discussion-summary": {
-      "anchor": "c179cfc785f27e1348616f3075a88879f5994ff7",
-      "observed_at": "2026-11-03T10:01:34Z",
-      "scope_tree_hash": "sha256:3e5062f3668728d2eaafbf5175b8c6f192302b370b643b6ffc7b6ab8f6ce392a",
-      "scope_file_count": 1,
-      "content_hash": "sha256:ae3d33397f271c3ce361d23a6c39302b032b5831163e950c528ed4afce2fe6d7"
-    },
     "docmodel": {
       "anchor": "9b1bf5539c7a18d3f067466c241b5e61f1aa66de",
       "observed_at": "2026-11-03T09:14:12Z",
