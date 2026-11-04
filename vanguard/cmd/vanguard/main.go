@@ -75,7 +75,7 @@ func initCmd() *cobra.Command {
 				return err
 			}
 			fmt.Println("vanguard store scaffolded at .vanguard/")
-			fmt.Println("→ commit .vanguard/ immediately — the lock is the shared attestation record; un-committed, a fresh clone reports lock-lost")
+			fmt.Println("— commit .vanguard/ immediately — the lock is the shared attestation record; un-committed, a fresh clone reports lock-lost")
 			return nil
 		},
 	}
@@ -93,12 +93,16 @@ func checkCmd() *cobra.Command {
 		runBindings    bool
 		maxRecovery    int
 		failOnAffected bool
+		noColor        bool
 	)
 	cmd := &cobra.Command{
 		Use:   "check [doc-id]",
 		Short: "two-phase read-only check: structure verification, then freshness",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// Presentation knobs are read per run: the flag variable is
+			// bound at construction, but its parsed value only exists here.
+			check.NoColor = noColor
 			store, err := findStore()
 			if err != nil {
 				return err
@@ -116,15 +120,19 @@ func checkCmd() *cobra.Command {
 			}
 
 			sel := check.Selection{
-				Strict:         strict,
-				FailOnAffected: failOnAffected,
-				RunBindings:    runBindings,
+				Strict:           strict,
+				FailOnAffected:   failOnAffected,
+				RunBindings:      runBindings,
+				MaxRecoveryWalk:  maxRecovery,
 			}
 			var mode string
 			switch {
 			case fromRef != "":
 				if strict {
 					return fmt.Errorf("--strict combined with --from/--to is a usage error — gap categories are meaningless in range mode")
+				}
+				if runBindings {
+					return fmt.Errorf("--run-bindings combined with --from/--to is a usage error — bindings never run in range mode")
 				}
 				mode, sel.From, sel.To = check.ModeRange, fromRef, toRef
 			case pathArg != "":
@@ -151,35 +159,39 @@ func checkCmd() *cobra.Command {
 					return err
 				}
 			}
-			return emit(env, format, output)
+			return emit(engine, env, format, output)
 		},
 	}
 	cmd.Flags().StringVar(&pathArg, "path", "", "reverse lookup: documents whose watch globs claim this path")
 	cmd.Flags().StringVar(&fromRef, "from", "", "range mode: base ref")
 	cmd.Flags().StringVar(&toRef, "to", "", "range mode: head ref (defaults to HEAD)")
 	cmd.Flags().BoolVar(&strict, "strict", false, "elevate unwatched/unobserved gaps to exit bit 8")
-	cmd.Flags().StringVar(&format, "format", "text", "output format: text, json, yaml")
+	cmd.Flags().StringVar(&format, "format", "text", "output format: text, pretty, json, yaml")
 	cmd.Flags().StringVar(&output, "output", "", "write the result to a file instead of stdout")
 	cmd.Flags().StringVar(&nowStr, "now", "", "override the wall clock (RFC3339) for review_after determinism")
 	cmd.Flags().BoolVar(&runBindings, "run-bindings", false, "execute the allowlisted bindings for the documents in scope")
 	cmd.Flags().IntVar(&maxRecovery, "max-recovery-walk", 1000, "bound for the first-parent recovery walk")
 	cmd.Flags().BoolVar(&failOnAffected, "fail-on-affected", false, "range mode: set exit bit 32 when affected_in_range is non-empty")
-	_ = maxRecovery
+	cmd.Flags().BoolVar(&noColor, "no-color", false, "disable ANSI styling in the pretty format (also via the NO_COLOR env)")
 	return cmd
 }
 
 func observeCmd() *cobra.Command {
 	var (
-		all    bool
-		prune  bool
-		atStr  string
-		format string
+		all     bool
+		prune   bool
+		atStr   string
+		format  string
+		noColor bool
 	)
 	cmd := &cobra.Command{
 		Use:   "observe <doc-id>",
 		Short: "attest a document — the only lockfile-mutating command",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// Presentation knobs are read per run: the flag variable is
+			// bound at construction, but its parsed value only exists here.
+			check.NoColor = noColor
 			store, err := findStore()
 			if err != nil {
 				return err
@@ -203,13 +215,14 @@ func observeCmd() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return emit(res.Envelope, format, "")
+			return emit(engine, res.Envelope, format, "")
 		},
 	}
 	cmd.Flags().BoolVar(&all, "all", false, "guarded bootstrap hatch: attest only documents currently in the unobserved set")
 	cmd.Flags().BoolVar(&prune, "prune", false, "standalone gc pass: drop lock entries whose id no longer exists")
 	cmd.Flags().StringVar(&atStr, "at", "", "explicit attestation timestamp (RFC3339)")
-	cmd.Flags().StringVar(&format, "format", "text", "output format: text, json, yaml")
+	cmd.Flags().StringVar(&format, "format", "text", "output format: text, pretty, json, yaml")
+	cmd.Flags().BoolVar(&noColor, "no-color", false, "disable ANSI styling in the pretty format (also via the NO_COLOR env)")
 	return cmd
 }
 
@@ -235,10 +248,20 @@ func resolvePathArg(targetDir, arg string) (string, bool, error) {
 }
 
 // emit renders and writes the envelope, then exits with the composed bits.
-func emit(env *check.Envelope, format, output string) error {
-	out, err := check.Render(env, format)
-	if err != nil {
-		return err
+// The pretty format draws on engine state (declared watches, attestation
+// instants) via RenderTable when the engine is available.
+func emit(e *check.Engine, env *check.Envelope, format, output string) error {
+	var (
+		out string
+		err error
+	)
+	if format == "pretty" && e != nil {
+		out = e.RenderTable(env)
+	} else {
+		out, err = check.Render(env, format)
+		if err != nil {
+			return err
+		}
 	}
 	if output != "" {
 		if err := os.WriteFile(output, []byte(out), 0o644); err != nil {
