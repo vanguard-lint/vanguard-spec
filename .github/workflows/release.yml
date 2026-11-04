@@ -55,4 +55,18 @@ jobs:
         with:
           files: |
             dist/*
-          body_path: release_notes.md
+      - name: Set the release body from the annotation
+        shell: bash
+        run: |
+          set -euo pipefail
+          # .vanguard/rules/versioning.md, "Release notes": the body is the
+          # tag annotation, set explicitly — the release step above owns
+          # binaries only and leaves an existing body untouched.
+          release_id="$(curl -sf -H "Authorization: Bearer ${{ github.token }}" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/${GITHUB_REF_NAME}" | jq -er '.id')"
+          jq -n --rawfile body release_notes.md '{body: $body}' \
+            | curl -sf -X PATCH \
+              -H "Authorization: Bearer ${{ github.token }}" \
+              -H "Accept: application/vnd.github+json" \
+              -d @- \
+              "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/${release_id}" > /dev/null
