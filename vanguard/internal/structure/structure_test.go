@@ -178,3 +178,105 @@ func TestFormatMismatchIsLoud(t *testing.T) {
 func TestNilProfileValidatesNothing(t *testing.T) {
 	assertRules(t, rules(Validate("d.md", doc("junk"), nil, "markdown")), nil)
 }
+
+const nestedInAnyOf = `{
+  "anyOf": [
+    {
+      "x-vanguard": {
+        "required_sections": ["Interface", "Invariants"],
+        "citation_sections": ["Interface"],
+        "citation_pattern": "\\[[a-z0-9_./-]+\\.go:[A-Za-z0-9_]+\\]"
+      }
+    }
+  ]
+}`
+
+func TestNestedXVanguardInAnyOfIsEnforced(t *testing.T) {
+	dir := writeSchema(t, "nested", nestedInAnyOf)
+	p, err := Load(dir, "nested")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(p.RequiredSections) != 2 {
+		t.Fatalf("nested contract not loaded: %+v", p)
+	}
+	body := doc("# t\n\n## Interface\n\n- claim without citation\n\n## Invariants\n\n- cited [b.go:Sym]\n")
+	assertRules(t, rules(vmd("f.md", body, p)), []string{"structure_missing_citation"})
+}
+
+func TestAmbiguousNestedXVanguardFailsClosed(t *testing.T) {
+	dir := writeSchema(t, "ambiguous", `{
+  "anyOf": [{"x-vanguard": {"required_sections": ["A"]}}],
+  "oneOf": [{"x-vanguard": {"required_sections": ["B"]}}]
+}`)
+	if _, err := Load(dir, "ambiguous"); err == nil || !strings.Contains(err.Error(), "ambiguous") {
+		t.Fatalf("distinct nested contracts must fail closed, got: %v", err)
+	}
+}
+
+func TestIdenticalNestedAndTopLevelXVanguardIsOneContract(t *testing.T) {
+	dir := writeSchema(t, "same", `{
+  "x-vanguard": {"required_sections": ["A"]},
+  "anyOf": [{"x-vanguard": {"required_sections": ["A"]}}]
+}`)
+	if _, err := Load(dir, "same"); err != nil {
+		t.Fatalf("identical copies are one contract: %v", err)
+	}
+}
+
+func TestCitationOnContinuationLineSatisfiesTheClaim(t *testing.T) {
+	dir := writeSchema(t, "p", profile)
+	p, err := Load(dir, "p")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The citation sits on a wrapped continuation line: the whole item is
+	// the claim. Checking only the bullet's first line phantom-fails this.
+	body := doc("# t\n\n## Interface\n\n- `Load(store, opts)` reads config and\n  the lock; a missing lock is empty [engine.go:Load].\n\n- no citation anywhere in this item\n\n## Invariants\n\n- cited [b.go:Sym]\n")
+	assertRules(t, rules(vmd("f.md", body, p)), []string{"structure_missing_citation"})
+}
+
+func TestFenceOnlySectionsAreStillMissing(t *testing.T) {
+	dir := writeSchema(t, "p", profile)
+	p, err := Load(dir, "p")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The required sections exist only inside a fence: quoted examples do
+	// not satisfy the contract — the old scanner false-passed here.
+	body := doc("# t\n\n```md\n## Interface\n## Invariants\n```\n")
+	assertRules(t, rules(vmd("f.md", body, p)), []string{"structure_missing_section", "structure_missing_section"})
+}
+
+func TestQuotedHeadingIsNotADuplicate(t *testing.T) {
+	dir := writeSchema(t, "p", profile)
+	p, err := Load(dir, "p")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// A heading quoted inside a fence is not a second section: the old
+	// scanner raised a phantom duplicate here.
+	body := doc("# t\n\n```md\n## Interface\n```\n\n## Interface\n\n- cited [a.go:Sym]\n\n## Invariants\n\n- cited [b.go:Sym]\n")
+	assertRules(t, rules(vmd("f.md", body, p)), nil)
+}
+
+func TestFencedBulletIsNotACitationClaim(t *testing.T) {
+	dir := writeSchema(t, "p", profile)
+	p, err := Load(dir, "p")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// The uncited example bullet lives in a fence: no phantom violation.
+	body := doc("# t\n\n## Interface\n\n```yaml\n- not a claim\n```\n\n- cited [a.go:Sym]\n\n## Invariants\n\n- cited [b.go:Sym]\n")
+	assertRules(t, rules(vmd("f.md", body, p)), nil)
+}
+
+func TestFencedHeadingDoesNotViolateMaxDepth(t *testing.T) {
+	dir := writeSchema(t, "deep", `{"x-vanguard": {"max_depth": 2}}`)
+	p, err := Load(dir, "deep")
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := doc("# t\n\n```sh\n# a commented line, not a heading\n```\n\n### real\n")
+	assertRules(t, rules(vmd("f.md", body, p)), []string{"structure_max_depth"})
+}
