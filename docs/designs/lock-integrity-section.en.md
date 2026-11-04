@@ -1,7 +1,7 @@
 ## Lock & store integrity — detecting hand-edits and sabotage
 
 > **Proposed location in the spec:** after *Anchoring* (the "Lock loss" part), before *Tests bindings*.
-> **Status:** proposed addition for v1. To be ratified together with M3 (lock) and M4 (check).
+> **Status:** **UNRATIFIED PROPOSAL — NOT IMPLEMENTED.** Zero code coverage: no `verify` subcommand exists (`main.go` registers only `init`/`check`/`observe`), no exit bit 64, no integrity checks anywhere in `internal/`; a test whitelist already anticipates the subcommand, so a hint naming `verify` would fail at runtime. Tracked in `vanguard.md` → *Implementation status (honest ledger)* until ratified and built.
 
 ### Threat
 
