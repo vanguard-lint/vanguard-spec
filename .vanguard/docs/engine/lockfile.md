@@ -21,9 +21,11 @@ other.
 - `Version = 1` â€” lock schema version; an unknown major fails closed
   [lockfile.go:Version].
 - `Entry{Anchor, ObservedAt, ScopeTreeHash, ScopeFileCount, ContentHash,
-  ScopeSnapshot, unknown}` â€” anchor present = git mode, scope_snapshot
+  ScopeSnapshot, Target, unknown}` — anchor present = git mode, scope_snapshot
   present = hash mode, review_after-only entries store observed_at +
-  content_hash only [lockfile.go:Entry].
+  content_hash only; `Target` names a non-primary target (0.4.0), omitted
+  means primary, and older binaries read it as unknown data
+  [lockfile.go:Entry].
 - `Load(path) (*Lock, []byte, error)` â€” parse plus the exact on-disk bytes
   for the compare-and-swap [lockfile.go:Load].
 - `Lock{Version, Docs}` â€” the parsed lock: schema version and the id â†’
@@ -44,7 +46,8 @@ other.
   order, sorted scope_snapshot and unknown keys, 2-space indent, LF, trailing
   newline [lockfile.go:Serialize, lockfile.go:entryJSON].
 - Zero-valued known fields are omitted; observed_at and content_hash always
-  emit [lockfile.go:entryJSON].
+  emit; target emits only when non-empty, so 0.3.0 primary-target entries
+  serialize byte-identically [lockfile.go:entryJSON].
 - Unknown fields ride along sorted after the known ones and survive a
   parse-serialize round trip [lockfile.go:parseEntry].
 - Empty docs serialize to the exact init scaffold bytes [lockfile.go:Serialize].
