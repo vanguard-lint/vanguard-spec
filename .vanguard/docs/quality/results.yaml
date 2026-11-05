@@ -1,10 +1,10 @@
-﻿id: results
+id: results
 schema: quality-result
 watches:
   review_after: 30d
 schema_version: 1
 criteria_source: ".vanguard/docs/quality/criteria-tree.yaml"
-benchmarked_at: "2026-11-03T00:00:00Z"
+benchmarked_at: "2026-11-05T00:00:00Z"
 # Scoring rules: pass=100 (benchmark mandatory), partial=50, fail/not_run/blocked=0.
 # Parent nodes roll up mechanically from children; a pass without a benchmark is invalid.
 entries:
@@ -55,7 +55,7 @@ entries:
   - node_id: L2.1.f_STRUCTURE_VERIFICATION
     status: pass
     score: 100
-    evidence: "roll-up: 4/4 children pass"
+    evidence: "roll-up: 4/4 children pass; re-verified black-box by the v0.3.0-rc.2 audit attack suite — the nested-contract enforcement turned on against this store surfaced 120 latent violations, fixed to 0"
   - node_id: L2.2.a_LOCK_WRITE_RACES
     status: partial
     score: 50
@@ -167,7 +167,7 @@ entries:
     status: pass
     score: 100
     benchmark: "go test ./internal/check/ -count=1"
-    evidence: "TestRefusalMatrix: the dirty refusal carries bit 4 and names the offending paths (what/where) â€” no hint-less case"
+    evidence: "TestRefusalMatrix: the dirty refusal carries bit 4 and names the offending paths (what/where) — no hint-less case"
   - node_id: L4.1.1.c-3
     status: not_run
     score: 0
@@ -206,12 +206,12 @@ entries:
     status: pass
     score: 100
     benchmark: "go test ./internal/structure/ ./internal/check/ -count=1"
-    evidence: "violation corpus: missing_section, section_order, duplicate_section, missing_citation, format_mismatch, unknown/corrupt/absent schema â€” each asserted caught (0 false-pass)"
+    evidence: "violation corpus: missing_section, section_order, duplicate_section, missing_citation, format_mismatch, unknown/corrupt/absent schema — each asserted caught (0 false-pass); rc.2 adds the fence corpus: a section existing only inside a code fence is caught (TestFenceOnlySectionsAreStillMissing), confirmed black-box by the rc.2 audit attack suite"
   - node_id: L4.1.1.f-2
     status: pass
     score: 100
     benchmark: "go test ./internal/structure/ ./internal/check/ -count=1"
-    evidence: "TestValidDocumentPasses + TestCompliantDocumentIsFreshNotFatal + TestExistenceOnlySchemaValidatesNothing (0 false-fail)"
+    evidence: "TestValidDocumentPasses + TestCompliantDocumentIsFreshNotFatal + TestExistenceOnlySchemaValidatesNothing (0 false-fail); rc.2 kills the phantom family: quoted headings no longer count as duplicates, fenced example bullets are not claims, wrapped claims no longer phantom-fail (TestQuotedHeadingIsNotADuplicate, TestCitationOnContinuationLineSatisfiesTheClaim)"
   - node_id: L4.1.1.f-3
     status: pass
     score: 100
@@ -324,7 +324,7 @@ entries:
     status: pass
     score: 100
     benchmark: "go test ./internal/check/ -run TestEngineImportsNoNetwork -count=1"
-    evidence: "import-graph oracle (strace substituted): no net/net-http import in any engine package â€” no socket code exists"
+    evidence: "import-graph oracle (strace substituted): no net/net-http import in any engine package — no socket code exists"
   - node_id: L4.2.3.a-2
     status: pass
     score: 100
@@ -358,7 +358,7 @@ entries:
     status: pass
     score: 100
     benchmark: "go test ./internal/check/ -count=1"
-    evidence: "TestCloneKindMatrix: full repo+lock, lock-lost, no-git hash mode â€” no internal errors, every degradation carries a hint"
+    evidence: "TestCloneKindMatrix: full repo+lock, lock-lost, no-git hash mode — no internal errors, every degradation carries a hint"
   - node_id: L4.2.3.d-2
     status: partial
     score: 50
@@ -378,12 +378,12 @@ entries:
     status: pass
     score: 100
     benchmark: "go test ./internal/check/ -count=1"
-    evidence: "TestHintsAreRunnableCommands: every hint carries what/where plus a parseable runnable command"
+    evidence: "TestHintsAreRunnableCommands: every hint carries what/where plus a parseable runnable command; rc.2 extends the what/where to the dirty verdict — changed_paths names the churned files and the hint names the next command (TestDirtyEnvelopeCarriesWhatAndWhere)"
   - node_id: L4.2.4.b-2
     status: partial
     score: 50
     benchmark: "go test ./internal/check/ -count=1"
-    evidence: "TestHintsAreRunnableCommands: grammar + known subcommand validated for every hint; hints are not executed end-to-end"
+    evidence: "TestHintsAreRunnableCommands: grammar + known subcommand validated for every hint; rc.2 adds the dirty-recovery hint to the validated set; hints are still not executed end-to-end"
   - node_id: L4.2.4.c-1
     status: pass
     score: 100
