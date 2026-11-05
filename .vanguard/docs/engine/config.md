@@ -10,10 +10,11 @@ watches:
 # config — Strict Store Configuration
 
 Loads and strictly validates `vanguard.yaml` — the user-owned configuration
-defining discovery globs, the target path, tunables, allowlisted bindings,
-and the extension-to-format map. Fail-closed entry point: anchors, aliases,
-merge keys, unknown keys, bad discovery globs, and bad binding shapes are all
-fatal; advisory warnings (missing version) ride along on the returned Config.
+defining discovery globs, the target path, named targets, tunables,
+allowlisted bindings, and the extension-to-format map. Fail-closed entry
+point: anchors, aliases, merge keys, unknown keys, bad discovery globs, and
+bad binding shapes are all fatal; advisory warnings (missing version) ride
+along on the returned Config.
 
 ## Interface
 
@@ -23,8 +24,11 @@ fatal; advisory warnings (missing version) ride along on the returned Config.
 - `Decode(data []byte) (*Config, error)` — two passes: a yaml.Node pass that
   rejects anchors/aliases/merge keys, then a `KnownFields(true)` strict pass,
   then defaults and validation [config.go:Decode].
-- `Config{Version, Discovery, TargetPath, ClockSkewTolerance, Bindings,
-  Formats, Warnings}` — fully defaulted [config.go:Config].
+- `Config{Version, Discovery, TargetPath, Targets, ClockSkewTolerance,
+  Bindings, Formats, Warnings}` — fully defaulted [config.go:Config].
+- `Targets` — the optional `targets:` map (name → local path) declaring
+  named targets beside the legacy singular `target:`; 0.4.0 decoupled stores
+  [config.go:Targets].
 - `Binding{Cmd, CWD, Timeout}` — one allowlisted command; documents reference
   bindings by name, never free text [config.go:Binding].
 - `DefaultClockSkewTolerance` = 5m, `DefaultBindingTimeout` = 600s
@@ -45,6 +49,10 @@ fatal; advisory warnings (missing version) ride along on the returned Config.
 - Binding names follow the shared id grammar; `cmd` must be a non-empty
   array; `cwd` is `""`, `"target"`, or `"store"`; timeout and
   `clock_skew_tolerance` go through `duration.ParseTunable` [config.go:Decode].
+- Target names follow the same shared id grammar and paths must be non-empty
+  [config.go:Decode]; whether a declared target path exists is enforced at
+  engine load (a declared target pointing at nothing is a config error, never
+  a silent fall into hash mode) [check/engine.go:Load].
 
 ## Side effects
 
