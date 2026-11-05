@@ -64,12 +64,15 @@ The versioning rule in `.vanguard/rules/versioning.md` is in force: version
 numbers come only from `vX.Y.Z` tags, release binaries are built and attached
 by the release workflow, and untagged builds report `dev`. The pre-release
 line has started: `v0.3.0-rc.1` shipped the sha256v2 lock scheme and the
-release pipeline; `v0.3.0-rc.2` closes the audit findings. The stable `0.3.0`
-tag waits for the structure layer.
+release pipeline; `v0.3.0-rc.2` closed the repo-side structure-gate findings
+and was verified black-box by the audit attack suite (delta 100/100). The
+stable `0.3.0` tag follows the rc line: the feature set is frozen, no
+consumers remain to gather migration feedback from, and the goldmark-AST
+structure rules move to the next minor.
 
 ## Order
 
 W1 ratification and W2's criteria tree can start immediately and gate
-everything else. W3 continues in parallel per milestone. W4's pipeline is
-proven and the pre-release line is live; the stable tag waits for the
-structure layer.
+everything else. W3 continues in parallel per milestone as the 0.4.0 scope.
+W4's pipeline is proven and the stable `0.3.0` tag lands on the audited
+rc.2 state.
