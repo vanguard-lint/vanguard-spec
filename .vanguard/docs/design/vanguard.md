@@ -233,6 +233,18 @@ Vanguard is a single Go binary. Four internal components sit between the CLI and
 
 **Resolving `check <doc-id>` — one rule.** The argument is an **exact document id** (case-sensitive); an unknown id is a usage error with the hint *"no document with id `<id>` — documents live under `.vanguard/docs/`"*. There is no path-argument form in v1: paths belong to `check --path <path>`, and ids are the only per-document selector — a single resolution rule two implementations can never disagree on.
 
+### Decoupled stores and multiple targets (0.4.0)
+
+**Two provider roles, pinned by precondition.** The engine instantiates providers per role, never one provider serving both: the **store provider** — opened against the repository that contains `.vanguard/` — answers exactly two observe preconditions (document committed, document clean); the **target provider** — one per target — answers every staleness computation (scope hash at HEAD, dirty detection, attribution, merge/rebase markers, HEAD existence, `--path` reverse lookup). A question about documents is never asked of a target; a question about code is never asked of the store. An observe on a decoupled store records both sides in one entry: `content_hash`/`observed_at` describe the store-side document, `anchor`/`scope_snapshot` describe the target's state at its HEAD — and the lock is committed in the store repo, whose git history is the attestation ledger.
+
+**Named targets, bound per document.** `vanguard.yaml` may declare a `targets:` map (name → local path) beside the legacy `target:`; a document's optional engine-owned frontmatter key `target:` names one of them. Omitted means the primary target (legacy `target.path`; in-repo default unchanged). One document binds to exactly one target — overlapping coverage is expressed by separate documents. Validation is fatal at load: a target name must match the document-id grammar, duplicate names are rejected, a declared target path must exist and be a directory (a declared target pointing at nothing is a config error, never a silent fall into hash mode), a frontmatter naming an unknown target is fatal at discovery, and a lock entry naming an unconfigured target is fatal at load — the lock cannot outlive a target rename silently.
+
+**Degradation per target is honest and closed.** A target with `.git` runs the full axis set (paths staleness, attribution, dirty). A git-less target runs the hash provider: net-state staleness by re-enumeration — no attribution, no dirty/stale distinction, and the envelope says so rather than inventing history.
+
+**Compatibility is zero-migration.** The lock entry's `target` field is optional: omitted means primary, so 0.3.0 locks read and write identically, and the new field is unknown-data to an older binary. The envelope's `Document.target` is optional and additive — the envelope schema stays at version 1; the text renderer annotates only non-primary bindings. In-repo stores without `targets:` behave byte-identically to 0.3.0.
+
+**Cross-target surface.** `check --path` resolves the reverse lookup against every target at least one document references. Range mode runs per document against its own target's history, aggregating `affected_in_range` across targets. W1 `verify` rides the same lock-schema pass: Tier B cross-checks each entry's anchor against its own target's ODB.
+
 ### Structure schemas (`.vanguard/schemas/`)
 
 Each format has its own schema language; a document's `schema:` field keys into one of these files.
