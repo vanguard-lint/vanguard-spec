@@ -51,12 +51,17 @@ the design canon stays authoritative.
 - `internal/duration` — the review_after grammar (h, d, w, mo, y; a bare
   integer means days) plus Go-duration tunables.
 - `internal/config` — strict vanguard.yaml loading: unknown keys, anchors,
-  aliases, and merge keys are fatal; discovery globs cannot escape docs.
+  aliases, and merge keys are fatal; discovery globs cannot escape docs;
+  named targets (`targets:` map) declare additional watch roots with the
+  shared id grammar.
 - `internal/docmodel` — engine-field extraction for markdown, json, yaml, and
   the dsl leading comment block; lexicographic discovery with fail-closed
-  parse and id rules.
+  parse and id rules; the optional `target:` key binds a document to one
+  named target.
 - `internal/lockfile` — canonical lockfile serialization (sorted ids, fixed
-  field order), forward-compatible unknown fields, compare-and-swap writes.
+  field order), forward-compatible unknown fields, compare-and-swap writes;
+  entries carry an optional `target` field (omitted = primary, zero-migration
+  both directions).
 - `internal/provider` — the git provider over go-git (tree OIDs, reachability,
   bounded recovery, chronological range attribution that stops at the
   anchor's reachable set) and the hash provider over plain directories;
@@ -66,6 +71,11 @@ the design canon stays authoritative.
   cannot report phantom churn.
 - `internal/check` — the two-phase check engine, the observe attestation
   engine, bindings, the text and pretty renderers, and the output contract.
+  Since 0.4.0 the engine splits providers by role: a store provider (the
+  repository containing `.vanguard`) answers the document-side observe
+  preconditions, and one target provider per named target answers every
+  staleness question — a store may live outside the repositories it watches
+  and attest N targets, each with or without git.
 
 ## Guarantees already guarded by tests
 
