@@ -9,7 +9,7 @@ watches:
 
 # docmodel — Discovery and the Engine Document Model
 
-Extracts the engine-owned fields (id, schema, watches.paths,
+Extracts the engine-owned fields (id, schema, target, watches.paths,
 watches.review_after, bindings) from discovered files under the docs root —
 markdown frontmatter, top-level JSON/YAML, and DSL leading-comment blocks —
 walking the docs root in fixed lexicographic path order. Parsing is
@@ -24,9 +24,13 @@ warnings.
   RelPath; a missing or non-directory docs root is a fatal that names the
   path and the recovery (restore the store documents or `vanguard init`),
   never a raw lstat error [docmodel.go:Discover].
-- `Doc{ID, Schema, Watches, Bindings, RelPath, Format, Raw, PathGlobs,
-  ReviewAfterSeconds}` — engine fields only; everything else in a document is
-  user-defined and opaque [docmodel.go:Doc].
+- `Doc{ID, Schema, Target, Watches, Bindings, RelPath, Format, Raw,
+  PathGlobs, ReviewAfterSeconds}` — engine fields only; everything else in a
+  document is user-defined and opaque [docmodel.go:Doc].
+- `Target` — the optional engine-owned `target:` frontmatter key naming one
+  configured target; empty means the primary target. The grammar is
+  validated at discovery; whether the name is configured is enforced at
+  engine load [docmodel.go:parseDocument, check/engine.go:Load].
 - `Watches{Paths, ReviewAfter}` — the staleness sources: raw watch globs
   (canonicalized into `PathGlobs`) and the declared `review_after`
   [docmodel.go:Watches].
@@ -47,7 +51,7 @@ warnings.
   with a split-the-document hint [docmodel.go:parseMarkdownFrontmatter].
 - Frontmatter YAML is strict: duplicate keys, anchors, aliases are fatal
   [docmodel.go:decodeStrict, docmodel.go:rejectYAMLTricks].
-- Whole-document formats (json/yaml) extract the four engine keys strictly
+- Whole-document formats (json/yaml) extract the engine keys strictly
   while every other top-level field is user-owned content, never an error;
   duplicate top-level keys and anchors anywhere in the file stay fatal
   [docmodel.go:parseTopLevelFields].
