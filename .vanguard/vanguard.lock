@@ -101,9 +101,9 @@
       "content_hash": "sha256:85ce3ea8942c8287565d1381b0674c5d56625dda1fb4686433f0ee816334fd1e"
     },
     "quality-plan": {
-      "anchor": "1a1a749a99ec2ecc18ed1bd0a12b314ecc77b32d",
-      "observed_at": "2026-11-05T03:32:45Z",
-      "scope_tree_hash": "sha256v2:e892024cbbb0f57b729aaa0b56ff7a9ab7132f2f3a3e4a4dcdd7370d68943763",
+      "anchor": "0ae223dac21c556749c9b4ae87a82c0727b0937d",
+      "observed_at": "2026-11-05T04:23:41Z",
+      "scope_tree_hash": "sha256v2:0a3b203b1bb5d3d3907534288076bd5d94aa6fb4e625f3092adfcd100cda4035",
       "scope_file_count": 3,
       "content_hash": "sha256:44086de7d394b9ae9be3601cd4263a8500288eb6c8a1cecb6e844c8f5321ca6e"
     },
@@ -147,11 +147,11 @@
       "content_hash": "sha256:0110aa9f318b1a049d70924154c1faca16c82dd3d6c191b726c4b12ce6abe38d"
     },
     "vanguard": {
-      "anchor": "1a1a749a99ec2ecc18ed1bd0a12b314ecc77b32d",
-      "observed_at": "2026-11-05T03:32:43Z",
-      "scope_tree_hash": "sha256v2:7f4426d0f4d545de5fbd9504dec5a2140717cfcef387d9b2077f8c9dc669f096",
+      "anchor": "0ae223dac21c556749c9b4ae87a82c0727b0937d",
+      "observed_at": "2026-11-05T04:23:41Z",
+      "scope_tree_hash": "sha256v2:b0a86fc9ee8057a281b66a590721d0c0c4478504af08aa8d6210582f5ac94c4e",
       "scope_file_count": 1,
-      "content_hash": "sha256:b003b4f0ae9b96c699e270fb30fef2814e466484f9df8cec513b49e2f7e85082"
+      "content_hash": "sha256:79c896767808621c7366cc5c0564a5beaca73def4544b0599d3e82f517c934e7"
     },
     "vanguard-engine": {
       "anchor": "15d6517fc3d34634029c9be62df574ad67d13aa6",

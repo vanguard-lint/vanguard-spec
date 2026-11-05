@@ -70,9 +70,20 @@ stable `0.3.0` tag follows the rc line: the feature set is frozen, no
 consumers remain to gather migration feedback from, and the goldmark-AST
 structure rules move to the next minor.
 
+### W5 — Decoupled stores and multiple targets (0.4.0, new)
+
+The canon section "Decoupled stores and multiple targets (0.4.0)" is
+ratified; the design draft lives at `.vanguard/docs/design/design-040-draft.md`
+(an unwatched design record). Implementation order: config `targets:` +
+validation fatals, the store/target provider seam in the engine, the observe
+precondition split, the optional lock entry field and envelope
+`Document.target`, then two-repo integration fixtures reproducing the v1
+decoupled-refusal case. Zero-migration rule: in-repo stores without
+`targets:` behave byte-identically to 0.3.0.
+
 ## Order
 
 W1 ratification and W2's criteria tree can start immediately and gate
-everything else. W3 continues in parallel per milestone as the 0.4.0 scope.
-W4's pipeline is proven and the stable `0.3.0` tag lands on the audited
-rc.2 state.
+everything else. W3 continues in parallel per milestone; W5 is the 0.4.0
+headline feature and starts from the ratified canon section. W4's pipeline is
+proven and the stable `0.3.0` tag lands on the audited rc.2 state.
