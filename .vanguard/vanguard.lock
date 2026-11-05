@@ -40,6 +40,10 @@
       "observed_at": "2026-11-03T09:13:30Z",
       "content_hash": "sha256:4fb2df4e3eebb161c8bdf10b3a0842e8ba215c5bbaef3db8359b7c3a6afd2337"
     },
+    "design-040-draft": {
+      "observed_at": "2026-11-05T04:18:45Z",
+      "content_hash": "sha256:f4ae96571d4b697e89f4804dd43fd231ce2d20d20f297deb0519c2e224ed7994"
+    },
     "design-draft": {
       "anchor": "79496bcbbe2ae2c68cab14554a80a25837ff94a8",
       "observed_at": "2026-11-04T05:35:00Z",
