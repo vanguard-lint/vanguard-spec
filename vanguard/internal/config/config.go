@@ -26,6 +26,7 @@ type Config struct {
 	Version            int
 	Discovery          []string
 	TargetPath         string
+	Targets            map[string]string // named targets: name -> local path
 	ClockSkewTolerance time.Duration
 	Bindings           map[string]Binding
 	Formats            map[string]string
@@ -49,6 +50,7 @@ type rawConfig struct {
 	Target *struct {
 		Path string `yaml:"path"`
 	} `yaml:"target"`
+	Targets            map[string]string     `yaml:"targets"`
 	ClockSkewTolerance string                `yaml:"clock_skew_tolerance"`
 	Bindings           map[string]rawBinding `yaml:"bindings"`
 	Formats            map[string]string     `yaml:"formats"`
@@ -114,6 +116,18 @@ func Decode(data []byte) (*Config, error) {
 	}
 	if raw.Target != nil {
 		cfg.TargetPath = raw.Target.Path
+	}
+	if raw.Targets != nil {
+		cfg.Targets = make(map[string]string, len(raw.Targets))
+		for name, path := range raw.Targets {
+			if err := validateID(name); err != nil {
+				return nil, fmt.Errorf("target name %q: %w", name, err)
+			}
+			if path == "" {
+				return nil, fmt.Errorf("target %q: path must not be empty", name)
+			}
+			cfg.Targets[name] = path
+		}
 	}
 	if raw.Formats != nil {
 		for ext, format := range raw.Formats {

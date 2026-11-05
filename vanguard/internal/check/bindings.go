@@ -27,8 +27,10 @@ func (e *Engine) BindingsFor(docID string, names []string) []Binding {
 
 // RunBindings executes the allowlisted commands for one document. Exit code
 // is the only decision input; results are transient and never persisted.
-// No shell interpolation, ever: direct argv exec.
-func (e *Engine) RunBindings(docID string, names []string) ([]Binding, bool) {
+// No shell interpolation, ever: direct argv exec. cwd "target" resolves to
+// the document's own target root (0.4.0: per-target, not always primary).
+func (e *Engine) RunBindings(docID, target string, names []string) ([]Binding, bool) {
+	targetDir := e.TargetDirFor(target)
 	var out []Binding
 	anyFailed := false
 	for _, n := range names {
@@ -50,12 +52,12 @@ func (e *Engine) RunBindings(docID string, names []string) ([]Binding, bool) {
 			defer cancel()
 		}
 		cmd := exec.CommandContext(ctx, b.Cmd[0], b.Cmd[1:]...) //nolint:gosec // allowlisted argv, never a shell
-		cmd.Dir = e.TargetDir
+		cmd.Dir = targetDir
 		if b.CWD == "store" {
 			cmd.Dir = e.StoreDir
 		}
 		cmd.Env = append(cmd.Environ(),
-			"VANGUARD_TARGET="+e.TargetDir,
+			"VANGUARD_TARGET="+targetDir,
 			"VANGUARD_DOC="+docID,
 			"VANGUARD_STORE="+e.StoreDir,
 		)

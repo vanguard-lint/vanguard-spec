@@ -48,22 +48,22 @@ func TestBindingResultMatrix(t *testing.T) {
 	e := bindingsEngine(t, store)
 
 	// pass: exit 0 -> status pass.
-	res, _ := e.RunBindings("payments", []string{"ok"})
+	res, _ := e.RunBindings("payments", "", []string{"ok"})
 	if len(res) != 1 || res[0].Status != "pass" {
 		t.Fatalf("ok binding must pass: %+v", res)
 	}
 	// fail: non-zero exit -> failed with the exit code recorded.
-	res, _ = e.RunBindings("payments", []string{"fail"})
+	res, _ = e.RunBindings("payments", "", []string{"fail"})
 	if len(res) != 1 || res[0].Status != "failed" || res[0].ExitCode == 0 {
 		t.Fatalf("failing binding must fail with a code: %+v", res)
 	}
 	// unresolved: not in the allowlist -> failed, never executed.
-	res, _ = e.RunBindings("payments", []string{"never-declared"})
+	res, _ = e.RunBindings("payments", "", []string{"never-declared"})
 	if len(res) != 1 || res[0].Status != "failed" || res[0].ExitCode != -1 {
 		t.Fatalf("unresolved binding must fail without executing: %+v", res)
 	}
 	// anyFailed aggregation.
-	_, anyFailed := e.RunBindings("payments", []string{"ok", "fail"})
+	_, anyFailed := e.RunBindings("payments", "", []string{"ok", "fail"})
 	if !anyFailed {
 		t.Fatal("a failing binding must aggregate to anyFailed")
 	}
@@ -80,7 +80,7 @@ bindings:
 `)
 	commitAll(t, root)
 	e := bindingsEngine(t, store)
-	res, anyFailed := e.RunBindings("payments", []string{"loud-failure"})
+	res, anyFailed := e.RunBindings("payments", "", []string{"loud-failure"})
 	if !anyFailed || res[0].Status != "failed" {
 		t.Fatalf("non-zero exit must fail regardless of output: %+v", res)
 	}
@@ -126,7 +126,7 @@ func TestRawFrontmatterCommandNeverExecutes(t *testing.T) {
 		"---\nid: rogue\nschema: none\nwatches:\n  paths: [\"src/**\"]\nbindings: [\"rm -rf /\"]\n---\n# rogue\n")
 	commitAll(t, root)
 	e := bindingsEngine(t, store)
-	res, _ := e.RunBindings("rogue", []string{"rm -rf /"})
+	res, _ := e.RunBindings("rogue", "", []string{"rm -rf /"})
 	if res[0].Status != "failed" || res[0].Command != "(unresolved)" {
 		t.Fatalf("an undeclared command must be unresolved, never executed: %+v", res)
 	}

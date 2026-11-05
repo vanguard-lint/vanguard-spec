@@ -64,6 +64,10 @@ type Entry struct {
 	ScopeFileCount int
 	ContentHash    string
 	ScopeSnapshot  map[string]string
+	// Target names the non-primary target the entry attests; empty means
+	// the primary target (0.3.0 entries carry no target and read as
+	// primary — zero-migration in both directions).
+	Target string
 
 	// unknown preserves fields this version does not know (forward
 	// compatibility across minor versions).
@@ -138,6 +142,11 @@ func parseEntry(raw json.RawMessage) (Entry, error) {
 	if v, ok := get("observed_at"); ok {
 		if err := json.Unmarshal(v, &entry.ObservedAt); err != nil {
 			return entry, fmt.Errorf("observed_at: %w", err)
+		}
+	}
+	if v, ok := get("target"); ok {
+		if err := json.Unmarshal(v, &entry.Target); err != nil {
+			return entry, fmt.Errorf("target: %w", err)
 		}
 	}
 	if v, ok := get("scope_tree_hash"); ok {
@@ -226,6 +235,9 @@ func entryJSON(buf *bytes.Buffer, e Entry) {
 		put("anchor", e.Anchor)
 	}
 	put("observed_at", e.ObservedAt)
+	if e.Target != "" {
+		put("target", e.Target)
+	}
 	if e.ScopeTreeHash != "" {
 		put("scope_tree_hash", e.ScopeTreeHash)
 	}

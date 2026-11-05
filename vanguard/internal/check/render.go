@@ -67,7 +67,13 @@ func renderText(env *Envelope) string {
 	default:
 		fmt.Fprintf(&b, "Vanguard check — %d documents", len(env.Documents))
 		for _, d := range env.Documents {
-			fmt.Fprintf(&b, "\n %-9s %s", strings.ToUpper(d.Status), d.Doc)
+			name := d.Doc
+			if d.Target != "" {
+				// Non-primary bindings are annotated; single-target stores
+				// render exactly as before.
+				name = d.Doc + "@" + d.Target
+			}
+			fmt.Fprintf(&b, "\n %-9s %s", strings.ToUpper(d.Status), name)
 			if d.DocumentChanged {
 				b.WriteString("  (document changed)")
 			}

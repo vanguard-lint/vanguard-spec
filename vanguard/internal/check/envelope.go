@@ -35,6 +35,7 @@ const (
 // Document is one per-document envelope entry.
 type Document struct {
 	Doc                string      `json:"doc" yaml:"doc"`
+	Target             string      `json:"target,omitempty" yaml:"target,omitempty"`
 	Status             string      `json:"status,omitempty" yaml:"status,omitempty"`
 	TriggeredWatches   []string    `json:"triggered_watches,omitempty" yaml:"triggered_watches,omitempty"`
 	ChangedPaths       []string    `json:"changed_paths,omitempty" yaml:"changed_paths,omitempty"`

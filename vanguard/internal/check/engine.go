@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"time"
 
 	"github.com/vanguard-lint/vanguard/internal/config"
@@ -14,11 +15,11 @@ import (
 	"github.com/vanguard-lint/vanguard/internal/structure"
 )
 
-// Engine wires the store: config, discovery, lock, and provider.
+// Engine wires the store: config, discovery, lock, and providers.
 type Engine struct {
 	StoreDir  string // path to .vanguard
 	DocsRoot  string // path to .vanguard/docs
-	TargetDir string // target root (watch globs resolve here)
+	TargetDir string // primary target root (watch globs resolve here)
 	Cfg       *config.Config
 	Docs      []docmodel.Doc
 	Warnings  []docmodel.Warning
@@ -27,7 +28,16 @@ type Engine struct {
 	LockRaw   []byte
 	LockSeen  bool // the lockfile exists on disk
 	Prov      provider.Provider
-	Now       time.Time
+	// StoreProv is the repository that contains the store — opened at the
+	// store's parent. It answers the document-side observe preconditions
+	// (committed, clean); nil when the store sits outside any repository.
+	StoreProv provider.Provider
+	// targetProviders holds one provider per named target (0.4.0); the
+	// primary target stays in Prov. Target names are validated at load:
+	// documents and lock entries can only reference configured names.
+	targetProviders map[string]provider.Provider
+	targetDirs      map[string]string
+	Now             time.Time
 	// StructureViolations maps a document id to the findings of the schema
 	// it declared. Empty when every declared schema is satisfied.
 	StructureViolations map[string][]structure.Violation
@@ -72,10 +82,42 @@ func Load(storeDir string, opts Options) (*Engine, error) {
 	}
 
 	storeName := filepath.Base(storeDir)
+	storeRoot := filepath.Dir(storeDir)
 	if p, err := provider.OpenGit(e.TargetDir, storeName); err == nil {
 		e.Prov = p
 	} else {
 		e.Prov = provider.OpenHash(e.TargetDir, storeName)
+	}
+
+	// Named targets (0.4.0): one provider per declared target. A declared
+	// target pointing at nothing is a config error — never a silent fall
+	// into hash mode over an empty root.
+	if len(cfg.Targets) > 0 {
+		e.targetProviders = make(map[string]provider.Provider, len(cfg.Targets))
+		e.targetDirs = make(map[string]string, len(cfg.Targets))
+		for name, tpath := range cfg.Targets {
+			dir := tpath
+			if !filepath.IsAbs(tpath) {
+				dir = filepath.Join(storeRoot, tpath)
+			}
+			if info, statErr := os.Stat(dir); statErr != nil || !info.IsDir() {
+				return nil, fmt.Errorf("target %q: path %s does not exist or is not a directory — a declared target pointing at nothing is a config error", name, tpath)
+			}
+			e.targetDirs[name] = dir
+			if p, err := provider.OpenGit(dir, storeName); err == nil {
+				e.targetProviders[name] = p
+			} else {
+				e.targetProviders[name] = provider.OpenHash(dir, storeName)
+			}
+		}
+	}
+
+	// Store provider: the repository that contains the store, rooted
+	// exactly at the store's parent (no upward detection — same rule as
+	// targets). Nil when the store sits outside any repository; the
+	// document-committed precondition is then skipped, as in 0.3.0.
+	if sp, err := provider.OpenGit(storeRoot, storeName); err == nil {
+		e.StoreProv = sp
 	}
 
 	docs, warnings, err := docmodel.Discover(e.DocsRoot, cfg.Discovery, cfg.Formats)
@@ -84,6 +126,20 @@ func Load(storeDir string, opts Options) (*Engine, error) {
 	}
 	e.Docs = docs
 	e.Warnings = warnings
+
+	// Target binding validation: a document naming an unknown target would
+	// attest against nothing — fatal at discovery, fail-closed.
+	for i := range e.Docs {
+		t := e.Docs[i].Target
+		if t != "" && len(cfg.Targets) == 0 {
+			return nil, fmt.Errorf("document %q names target %q — vanguard.yaml declares no targets: map", e.Docs[i].ID, t)
+		}
+		if t != "" {
+			if _, ok := cfg.Targets[t]; !ok {
+				return nil, fmt.Errorf("document %q names unknown target %q — declared targets: %v", e.Docs[i].ID, t, sortedTargetNames(cfg.Targets))
+			}
+		}
+	}
 
 	// Structure enforcement: every document declares its binding. A missing
 	// `schema:` field is fatal — silence would be the lie G3 forbids. The
@@ -128,8 +184,48 @@ func Load(storeDir string, opts Options) (*Engine, error) {
 		e.Lock = lock
 		e.LockRaw = raw
 		e.LockSeen = true
+		// A lock entry naming an unconfigured target means the lock outlived
+		// a target rename — fatal, never a silent mis-attestation.
+		for id, entry := range e.Lock.Docs {
+			if entry.Target == "" {
+				continue
+			}
+			if _, ok := cfg.Targets[entry.Target]; !ok {
+				return nil, fmt.Errorf("lock entry %q names unknown target %q — a target rename invalidates the lock; re-observe after fixing vanguard.yaml", id, entry.Target)
+			}
+		}
 	}
 	return e, nil
+}
+
+// ProvFor returns the provider of one document's target: the primary when
+// the document binds no name. Names are load-validated — a miss is an
+// internal error, not a user-facing state.
+func (e *Engine) ProvFor(target string) provider.Provider {
+	if target == "" {
+		return e.Prov
+	}
+	return e.targetProviders[target]
+}
+
+// TargetDirFor returns the filesystem root of one target by name.
+func (e *Engine) TargetDirFor(target string) string {
+	if target == "" {
+		return e.TargetDir
+	}
+	if dir, ok := e.targetDirs[target]; ok {
+		return dir
+	}
+	return e.TargetDir
+}
+
+func sortedTargetNames(m map[string]string) []string {
+	names := make([]string, 0, len(m))
+	for n := range m {
+		names = append(names, n)
+	}
+	sort.Strings(names)
+	return names
 }
 
 // ContentHash returns the normalized full-document hash (frontmatter

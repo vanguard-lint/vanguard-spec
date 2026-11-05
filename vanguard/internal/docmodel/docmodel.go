@@ -38,6 +38,7 @@ type Watches struct {
 type Doc struct {
 	ID       string
 	Schema   string
+	Target   string // named target binding; "" = primary target
 	Watches  Watches
 	Bindings []string
 	RelPath  string // relative to docs/, slash-separated
@@ -58,6 +59,7 @@ type Warning struct {
 type frontmatter struct {
 	ID       string   `yaml:"id"`
 	Schema   string   `yaml:"schema"`
+	Target   string   `yaml:"target"`
 	Watches  *Watches `yaml:"watches"`
 	Bindings []string `yaml:"bindings"`
 }
@@ -150,12 +152,17 @@ func parseDocument(rel, format string, raw []byte) (*Doc, error) {
 		return nil, fmt.Errorf("%s: %w", rel, err)
 	}
 	if meta.ID == "" {
-		return nil, fmt.Errorf("%s: engine field id is required — the document model carries id, schema, watches, bindings", rel)
+		return nil, fmt.Errorf("%s: engine field id is required — the document model carries id, schema, target, watches, bindings", rel)
 	}
 	if err := validateID(meta.ID); err != nil {
 		return nil, fmt.Errorf("%s: id %q: %w", rel, meta.ID, err)
 	}
-	doc := &Doc{ID: meta.ID, Schema: meta.Schema, Watches: Watches{}, Bindings: meta.Bindings, RelPath: rel, Format: format, Raw: raw}
+	if meta.Target != "" {
+		if err := validateID(meta.Target); err != nil {
+			return nil, fmt.Errorf("%s: target %q: %w", rel, meta.Target, err)
+		}
+	}
+	doc := &Doc{ID: meta.ID, Schema: meta.Schema, Target: meta.Target, Watches: Watches{}, Bindings: meta.Bindings, RelPath: rel, Format: format, Raw: raw}
 	_ = body
 	if meta.Watches != nil {
 		doc.Watches = *meta.Watches
@@ -254,7 +261,7 @@ func parseTopLevelFields(raw []byte) (*frontmatter, []byte, error) {
 		}
 		seen[key.Value] = true
 		switch key.Value {
-		case "id", "schema", "watches", "bindings":
+		case "id", "schema", "target", "watches", "bindings":
 			engine.Content = append(engine.Content, key, val)
 		}
 	}
@@ -307,7 +314,7 @@ func parseDSLBlock(raw []byte) (*frontmatter, []byte, error) {
 
 func isEngineKey(k string) bool {
 	switch k {
-	case "id", "schema", "watches", "bindings":
+	case "id", "schema", "target", "watches", "bindings":
 		return true
 	}
 	return false
@@ -323,6 +330,8 @@ func assignField(meta *frontmatter, key, val string) {
 		meta.ID = val
 	case "schema":
 		meta.Schema = val
+	case "target":
+		meta.Target = val
 	case "bindings":
 		meta.Bindings = strings.Split(val, ",")
 		for i := range meta.Bindings {

@@ -9,6 +9,7 @@ import (
 	"github.com/vanguard-lint/vanguard/internal/docmodel"
 	"github.com/vanguard-lint/vanguard/internal/lockfile"
 	"github.com/vanguard-lint/vanguard/internal/pathmatch"
+	"github.com/vanguard-lint/vanguard/internal/provider"
 	"github.com/vanguard-lint/vanguard/internal/scope"
 )
 
@@ -162,7 +163,7 @@ func (e *Engine) checkAll(sel Selection) (*Result, error) {
 // evaluate computes one document's freshness. Returns (entry, watched):
 // watched=false means the document declares no watches (unwatched section).
 func (e *Engine) evaluate(doc *docmodel.Doc, sel Selection) (Document, bool) {
-	d := Document{Doc: doc.ID}
+	d := Document{Doc: doc.ID, Target: doc.Target}
 
 	hasPaths := len(doc.PathGlobs) > 0
 	hasClock := doc.ReviewAfterSeconds > 0
@@ -202,19 +203,22 @@ func (e *Engine) evaluate(doc *docmodel.Doc, sel Selection) (Document, bool) {
 
 // evaluateObserved computes the freshness chain for a document with a
 // baseline: stale (any condition) > dirty (only uncommitted churn) > fresh.
+// Every target-side question routes through the document's own provider —
+// the store provider never answers a question about code.
 func (e *Engine) evaluateObserved(doc *docmodel.Doc, entry lockfile.Entry, d *Document, maxWalk int) Document {
 	stale := false
+	prov := e.ProvFor(doc.Target)
 
 	// Shape mismatch: the entry's kind must fit the current provider mode —
 	// a mode flip reclassifies as unobserved, never mis-read.
 	hasPaths := len(doc.PathGlobs) > 0
 	if hasPaths {
-		if e.Prov.GitMode() && entry.Anchor == "" {
+		if prov.GitMode() && entry.Anchor == "" {
 			d.Status = StatusUnobserved
 			d.Hints = append(d.Hints, "target mode changed — run observe to record baselines in the current mode")
 			return *d
 		}
-		if !e.Prov.GitMode() && entry.ScopeSnapshot == nil {
+		if !prov.GitMode() && entry.ScopeSnapshot == nil {
 			d.Status = StatusUnobserved
 			d.Hints = append(d.Hints, "target mode changed — run observe to record baselines in the current mode")
 			return *d
@@ -253,8 +257,8 @@ func (e *Engine) evaluateObserved(doc *docmodel.Doc, entry lockfile.Entry, d *Do
 	// Paths axis: net-state rule — compare the scope hash at HEAD (or the
 	// snapshot) against the lock. History is attribution only.
 	if hasPaths {
-		if e.Prov.GitMode() {
-			stalePaths, changed, commits, kindMismatch := e.gitPathsAxis(doc, entry, d, maxWalk)
+		if prov.GitMode() {
+			stalePaths, changed, commits, kindMismatch := e.gitPathsAxis(prov, doc, entry, d, maxWalk)
 			if len(changed) > 0 {
 				// Attribution is informational on every path — fresh or
 				// stale, it names what touched the scope.
@@ -272,7 +276,7 @@ func (e *Engine) evaluateObserved(doc *docmodel.Doc, entry lockfile.Entry, d *Do
 				}
 			}
 		} else {
-			if e.hashPathsAxis(doc, entry) {
+			if e.hashPathsAxis(prov, doc, entry) {
 				stale = true
 				d.TriggeredWatches = append(d.TriggeredWatches, "paths")
 				d.Hints = append(d.Hints,
@@ -288,7 +292,7 @@ func (e *Engine) evaluateObserved(doc *docmodel.Doc, entry lockfile.Entry, d *Do
 	// Dirty may only hold when staleness does not: uncommitted churn in the
 	// watch scope. Provider warnings (the blobless-clone loud case) ride
 	// along as hints — advisory, never a status.
-	if dirty, warnings, err := e.Prov.Dirty(doc.PathGlobs); err == nil {
+	if dirty, warnings, err := prov.Dirty(doc.PathGlobs); err == nil {
 		if len(warnings) > 0 {
 			d.Hints = append(d.Hints, warnings...)
 		}
@@ -306,15 +310,16 @@ func (e *Engine) evaluateObserved(doc *docmodel.Doc, entry lockfile.Entry, d *Do
 	return *d
 }
 
-// gitPathsAxis decides the paths axis and attribution for git mode.
-func (e *Engine) gitPathsAxis(doc *docmodel.Doc, entry lockfile.Entry, d *Document, maxWalk int) (stale bool, changed, commits []string, kindMismatch bool) {
-	head, err := e.Prov.HEAD()
+// gitPathsAxis decides the paths axis and attribution for git mode. prov is
+// the document's own target provider.
+func (e *Engine) gitPathsAxis(prov provider.Provider, doc *docmodel.Doc, entry lockfile.Entry, d *Document, maxWalk int) (stale bool, changed, commits []string, kindMismatch bool) {
+	head, err := prov.HEAD()
 	if err != nil || head == "" {
 		// Unborn target: nothing committed — the scope cannot match the
 		// attested state.
 		return true, nil, nil, false
 	}
-	current, err := e.Prov.ScopeHash(doc.PathGlobs)
+	current, err := prov.ScopeHash(doc.PathGlobs)
 	if err != nil {
 		return true, nil, nil, false
 	}
@@ -330,16 +335,16 @@ func (e *Engine) gitPathsAxis(doc *docmodel.Doc, entry lockfile.Entry, d *Docume
 		// Net-fresh: the state matches the attestation. Attribution stays
 		// informational — A -> B -> A is fresh AND names the commits that
 		// touched the scope since the anchor (Q-1.1.b-2).
-		reachable, rerr := e.Prov.AnchorReachable(entry.Anchor)
+		reachable, rerr := prov.AnchorReachable(entry.Anchor)
 		if rerr == nil && reachable {
-			changed, commits, _ = e.Prov.Attribution(entry.Anchor, head, doc.PathGlobs)
+			changed, commits, _ = prov.Attribution(entry.Anchor, head, doc.PathGlobs)
 		} else if rerr == nil {
 			// Unreachable anchor under an identical net state (amend/squash
 			// rewrote history): the design's recovery flow still applies —
 			// a baseline matched inside the bound is a recovered anchor,
 			// exhaustion is an orphaned one. Either way the note surfaces;
 			// history rewriting under a fresh attestation is never silent.
-			if recovered, werr := e.Prov.RecoveredAnchor(doc.PathGlobs, entry.ScopeTreeHash, e.recoveryBound(maxWalk)); werr == nil && recovered != "" {
+			if recovered, werr := prov.RecoveredAnchor(doc.PathGlobs, entry.ScopeTreeHash, e.recoveryBound(maxWalk)); werr == nil && recovered != "" {
 				d.AnchorRecovered = true
 			} else {
 				d.AnchorOrphaned = true
@@ -349,15 +354,15 @@ func (e *Engine) gitPathsAxis(doc *docmodel.Doc, entry lockfile.Entry, d *Docume
 	}
 	// Stale. Attribution availability follows the three-path resolution;
 	// status is already decided by the net-state rule.
-	reachable, err := e.Prov.AnchorReachable(entry.Anchor)
+	reachable, err := prov.AnchorReachable(entry.Anchor)
 	if err == nil && reachable {
-		changed, commits, _ = e.Prov.Attribution(entry.Anchor, head, doc.PathGlobs)
+		changed, commits, _ = prov.Attribution(entry.Anchor, head, doc.PathGlobs)
 		return true, changed, commits, false
 	}
-	recovered, err := e.Prov.RecoveredAnchor(doc.PathGlobs, entry.ScopeTreeHash, e.recoveryBound(maxWalk))
+	recovered, err := prov.RecoveredAnchor(doc.PathGlobs, entry.ScopeTreeHash, e.recoveryBound(maxWalk))
 	if err == nil && recovered != "" {
 		d.AnchorRecovered = true
-		changed, commits, _ = e.Prov.Attribution(recovered, head, doc.PathGlobs)
+		changed, commits, _ = prov.Attribution(recovered, head, doc.PathGlobs)
 		return true, changed, commits, false
 	}
 	d.AnchorOrphaned = true
@@ -372,8 +377,8 @@ func (e *Engine) recoveryBound(maxWalk int) int {
 }
 
 // hashPathsAxis compares current scoped content hashes against the snapshot.
-func (e *Engine) hashPathsAxis(doc *docmodel.Doc, entry lockfile.Entry) bool {
-	snap, err := e.Prov.Snapshot(doc.PathGlobs)
+func (e *Engine) hashPathsAxis(prov provider.Provider, doc *docmodel.Doc, entry lockfile.Entry) bool {
+	snap, err := prov.Snapshot(doc.PathGlobs)
 	if err != nil {
 		return true // loud on IO failure
 	}
@@ -456,7 +461,7 @@ func (e *Engine) checkPath(sel Selection) (*Result, error) {
 
 // checkRange — Path-Hit Attribution, lockfile-free. affected ≠ stale.
 func (e *Engine) checkRange(sel Selection) (*Result, error) {
-	if !e.Prov.GitMode() {
+	if !e.Prov.GitMode() && len(e.targetProviders) == 0 {
 		return nil, usageError("range attribution is unavailable — the target has no git history")
 	}
 	res := &Result{}
@@ -467,7 +472,11 @@ func (e *Engine) checkRange(sel Selection) (*Result, error) {
 		if len(doc.PathGlobs) == 0 {
 			continue // no path scope exists to ask
 		}
-		changed, commits, err := e.Prov.Attribution(sel.From, sel.To, doc.PathGlobs)
+		prov := e.ProvFor(doc.Target)
+		if !prov.GitMode() {
+			continue // a git-less target has no history to attribute
+		}
+		changed, commits, err := prov.Attribution(sel.From, sel.To, doc.PathGlobs)
 		if err != nil {
 			return nil, err
 		}
@@ -477,6 +486,7 @@ func (e *Engine) checkRange(sel Selection) (*Result, error) {
 		env.AffectedInRange = append(env.AffectedInRange, doc.ID)
 		env.Documents = append(env.Documents, Document{
 			Doc:                doc.ID,
+			Target:             doc.Target,
 			ChangedPaths:       changed,
 			IntroducingCommits: commits,
 		})
@@ -503,7 +513,7 @@ func (e *Engine) ApplyBindings(env *Envelope) error {
 		if doc == nil || len(doc.Bindings) == 0 {
 			continue
 		}
-		results, anyFailed := e.RunBindings(doc.ID, doc.Bindings)
+		results, anyFailed := e.RunBindings(doc.ID, doc.Target, doc.Bindings)
 		env.Documents[i].Bindings = results
 		if anyFailed {
 			env.ExitBits |= BitBindingFailed
