@@ -13,13 +13,22 @@ Two-phase check (structure fails closed during discovery, then per-document
 freshness over the document, clock, and paths axes), the observe attestation
 engine (the only lockfile-mutating path), binding execution, and the output
 contract. All check modes (all/doc/path/range) plus observe emit one envelope
-that is identical in JSON and YAML, with exit bits composing by OR.
+that is identical in JSON and YAML, with exit bits composing by OR. Since
+0.4.0 the engine instantiates providers per role: a store provider (the
+repository containing `.vanguard`) answers the document-side observe
+preconditions, and one target provider per named target answers every
+staleness question — a document bound to a named target is evaluated entirely
+against its own target's provider [engine.go:Load, check.go:ProvFor].
 
 ## Interface
 
-- `Load(storeDir, Options)` — reads config, target, provider (git with hash
-  fallback), discovery, and the lock; a missing lock is an empty in-memory
-  lock with `LockSeen=false`, a corrupt one is fatal [engine.go:Load].
+- `Load(storeDir, Options)` — reads config, target, providers (git with hash
+  fallback, per role), discovery, and the lock; a missing lock is an empty
+  in-memory lock with `LockSeen=false`, a corrupt one is fatal
+  [engine.go:Load]. Named targets from the `targets:` map open one provider
+  each; a declared target path that does not exist is a fatal at load, a
+  frontmatter naming an unknown target is fatal at discovery, and a lock
+  entry naming an unconfigured target is fatal at load [engine.go:Load].
   Load is also the structure gate: a document without `schema:` is fatal,
   `none` opts out explicitly, any other name must resolve to a schema file
   (missing, corrupt, or regex-invalid is fatal), a profile declaring
@@ -37,9 +46,10 @@ that is identical in JSON and YAML, with exit bits composing by OR.
   `ObserveRequest` the attestation [observe.go:ObserveRequest].
 - Exit bits (compose by OR): fatal=1, stale=2, dirty=4, gaps=8 (`--strict`
   only), binding_failed=16, affected_in_range=32 [envelope.go:BitStale].
-- `ApplyBindings(env)` / `RunBindings(docID, names)` — pending notation for
-  referenced-but-not-run bindings; direct-argv execution of allowlisted
-  commands, exit code is the only decision input
+- `ApplyBindings(env)` / `RunBindings(docID, target, names)` — pending
+  notation for referenced-but-not-run bindings; direct-argv execution of
+  allowlisted commands, exit code is the only decision input; `cwd: target`
+  resolves to the document's own target root
   [bindings.go:RunBindings, check.go:ApplyBindings].
 - `Render(env, format)` — json, yaml, text, or pretty; pretty collapses to
   the text rendering when stdout is piped or NoColor is set; unknown format
@@ -69,13 +79,16 @@ that is identical in JSON and YAML, with exit bits composing by OR.
 - Attestation monotonicity: a timestamp before the previous observed_at is
   refused; an `--at` beyond clock_skew_tolerance in the future is refused
   [observe.go:attest].
-- Observe preconditions: HEAD exists, no merge or rebase in progress (a
-  mid-merge run is refused — attesting over an unstable worktree would
-  launder it), watch scope dirty-free, document clean, non-empty scope —
-  each refusal carries its reason and hint; dirty scope refusals also name
-  the offending paths; a detached HEAD warns but proceeds; a document
-  violating its declared schema is refused (attesting garbage would launder
-  it into fresh) [observe.go:attest].
+- Observe preconditions, split by provider role since 0.4.0: the store
+  provider answers document committed and document clean (a decoupled store
+  asks its own repository — the v1 engine asked the target and refused
+  forever); the document's target provider answers HEAD exists, no merge or
+  rebase in progress (a mid-merge target refuses the documents bound to it —
+  attesting over an unstable worktree would launder it), watch scope
+  dirty-free, non-empty scope — each refusal carries its reason and hint;
+  dirty scope refusals also name the offending paths; a detached HEAD warns
+  but proceeds; a document violating its declared schema is refused
+  (attesting garbage would launder it into fresh) [observe.go:attest].
 - Structure violations surface per document as {rule, file, line, message}
   with rules structure_missing_section, structure_section_order,
   structure_duplicate_section, structure_missing_citation,
@@ -99,7 +112,11 @@ VANGUARD_TARGET/VANGUARD_DOC/VANGUARD_STORE in the environment
 
 Initless check, observe-then-fresh, code churn, document edit, dirty vs
 stale, observe refusals, lock-lost, review_after, strict gaps, path reverse
-lookup, lock-free range mode, the JSON envelope shape, and the schema
+lookup, lock-free range mode, the JSON envelope shape, the schema
 enforcement vectors (missing/unknown/corrupt schema fatal, violations as
 fatal bit plus per-document findings, refusal at observe, compliant docs
-clean) [check_test.go].
+clean), and the 0.4.0 multi-target suite (decoupled two-repo lifecycle,
+uncommitted-document refusal via the store provider, git + hash targets
+side by side, primary-target lock byte-identity, fatal vectors for unknown
+target names / missing target paths / lock entries outliving a rename)
+[check_test.go, multi_target_test.go].
