@@ -228,6 +228,12 @@ func TestOverlapGlobsDedupInScopeHash(t *testing.T) {
 	if _, err := w.Commit("outside", &git.CommitOptions{Author: signature()}); err != nil {
 		t.Fatal(err)
 	}
+	// A commit is an external state change: the next hash is a new run
+	// and re-opens the provider (one snapshot per run).
+	g, err = OpenGit(root, filepath.Join(root, ".vanguard"))
+	if err != nil {
+		t.Fatal(err)
+	}
 	hOutside, err := g.ScopeHash([]string{"src/**"})
 	if err != nil {
 		t.Fatal(err)
@@ -241,6 +247,10 @@ func TestOverlapGlobsDedupInScopeHash(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := w.Commit("inside", &git.CommitOptions{Author: signature()}); err != nil {
+		t.Fatal(err)
+	}
+	g, err = OpenGit(root, filepath.Join(root, ".vanguard")) // new run snapshot
+	if err != nil {
 		t.Fatal(err)
 	}
 	hAdded, err := g.ScopeHash([]string{"src/**"})

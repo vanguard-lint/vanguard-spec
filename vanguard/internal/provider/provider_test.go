@@ -112,6 +112,10 @@ func TestScopeHashReactsToChange(t *testing.T) {
 	// Worktree changes do not move the HEAD tree: the hash is decided at
 	// HEAD — commit to see it move.
 	commitAll(t, p, "add gateway")
+	// The commit is an external state change: a provider is one run's
+	// snapshot (canon: "Memoization within a run"), so the next run
+	// re-opens.
+	p = openGit(t, root)
 	after, err := p.ScopeHash([]string{"src/payments/**/*.go"})
 	if err != nil {
 		t.Fatal(err)
@@ -133,6 +137,7 @@ func TestDirtyDetection(t *testing.T) {
 
 	// Uncommitted churn inside the scope.
 	write(t, root, "src/payments/api.go", "package payments // changed\n")
+	p = openGit(t, root) // new run snapshot after external churn
 	dirty, _, err = p.Dirty([]string{"src/payments/**"})
 	if err != nil || len(dirty) != 1 || dirty[0] != "src/payments/api.go" {
 		t.Fatalf("dirty = %v %v", dirty, err)
@@ -140,6 +145,7 @@ func TestDirtyDetection(t *testing.T) {
 
 	// Unrelated churn stays out of the scope.
 	write(t, root, "docs/guide.md", "# changed\n")
+	p = openGit(t, root) // new run snapshot after external churn
 	dirty, _, err = p.Dirty([]string{"src/payments/**"})
 	if err != nil || len(dirty) != 1 {
 		t.Fatalf("scope filtering failed: %v", dirty)
@@ -147,6 +153,7 @@ func TestDirtyDetection(t *testing.T) {
 
 	// Untracked files count as churn (git's classification).
 	write(t, root, "src/payments/new.go", "package payments\n")
+	p = openGit(t, root) // new run snapshot after external churn
 	dirty, _, err = p.Dirty([]string{"src/payments/**"})
 	if err != nil || len(dirty) != 2 {
 		t.Fatalf("untracked must count: %v", dirty)
@@ -265,6 +272,9 @@ func TestAttributionChronological(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// Two more commits are an external state change: the next attribution
+	// is a new run and re-opens the provider (one snapshot per run).
+	p = openGit(t, root)
 	_, commits, err = p.Attribution(c1, "", []string{"src/payments/**"})
 	if err != nil {
 		t.Fatal(err)

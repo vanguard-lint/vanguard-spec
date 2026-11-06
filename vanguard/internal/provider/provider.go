@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/go-git/go-git/v5"
@@ -65,6 +66,26 @@ type GitProvider struct {
 	root     string
 	storeDir string // level-1 store directory name, e.g. ".vanguard"
 	repo     *git.Repository
+
+	// Within-run memoization (canon: "Memoization within a run"): one
+	// snapshot per target per run. HEAD, the HEAD tree, the worktree
+	// status, and attribution baselines are pure functions of state that
+	// cannot change mid-run by design; capturing them once keeps every
+	// document in a run on the same snapshot instead of a drift blend.
+	// Nothing here is ever persisted: observe stays the only writer, and
+	// worktree-dependent state is never reused across runs.
+	headOnce   sync.Once
+	headHash   string
+	headErr    error
+	treeOnce   sync.Once
+	tree       *object.Tree
+	treeErr    error
+	statusOnce sync.Once
+	status     git.Status
+	statusErr  error
+	// baselines memoizes Attribution's reachable set per anchor string.
+	// The engine drives providers from a single goroutine, so no lock.
+	baselines map[string]map[plumbing.Hash]bool
 }
 
 // OpenGit opens the repository rooted exactly at root (no upward detection:
@@ -76,35 +97,45 @@ func OpenGit(root, storeDir string) (*GitProvider, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &GitProvider{root: root, storeDir: storeDir, repo: repo}, nil
+	return &GitProvider{root: root, storeDir: storeDir, repo: repo,
+		baselines: map[string]map[plumbing.Hash]bool{}}, nil
 }
 
 func (g *GitProvider) GitMode() bool { return true }
 
 func (g *GitProvider) HEAD() (string, error) {
-	ref, err := g.repo.Reference(plumbing.HEAD, true)
-	if err != nil {
-		if err == plumbing.ErrReferenceNotFound {
-			return "", nil // unborn repository
+	g.headOnce.Do(func() {
+		ref, err := g.repo.Reference(plumbing.HEAD, true)
+		if err != nil {
+			if err == plumbing.ErrReferenceNotFound {
+				return // unborn repository: "", nil
+			}
+			g.headErr = err
+			return
 		}
-		return "", err
-	}
-	if ref.Hash().IsZero() {
-		return "", nil
-	}
-	return ref.Hash().String(), nil
+		if ref.Hash().IsZero() {
+			return
+		}
+		g.headHash = ref.Hash().String()
+	})
+	return g.headHash, g.headErr
 }
 
 func (g *GitProvider) headTree() (*object.Tree, error) {
-	head, err := g.HEAD()
-	if err != nil || head == "" {
-		return nil, err
-	}
-	commit, err := g.repo.CommitObject(plumbing.NewHash(head))
-	if err != nil {
-		return nil, err
-	}
-	return commit.Tree()
+	g.treeOnce.Do(func() {
+		head, err := g.HEAD()
+		if err != nil || head == "" {
+			g.treeErr = err
+			return
+		}
+		commit, err := g.repo.CommitObject(plumbing.NewHash(head))
+		if err != nil {
+			g.treeErr = err
+			return
+		}
+		g.tree, g.treeErr = commit.Tree()
+	})
+	return g.tree, g.treeErr
 }
 
 // ScopeHash computes the per-glob hashes by strategy and combines them.
@@ -347,11 +378,18 @@ func (g *GitProvider) headBlob(path string) ([]byte, bool, error) {
 // phantom churn under core.autocrlf, which Dirty's normalized confirm
 // filters.
 func (g *GitProvider) goGitStatus() (git.Status, error) {
-	w, err := g.repo.Worktree()
-	if err != nil {
-		return git.Status{}, err
-	}
-	return w.Status()
+	// The full worktree scan is the most expensive primitive the engine
+	// has; captured once per run and shared by every document on this
+	// target (canon: "Memoization within a run").
+	g.statusOnce.Do(func() {
+		w, err := g.repo.Worktree()
+		if err != nil {
+			g.statusErr = err
+			return
+		}
+		g.status, g.statusErr = w.Status()
+	})
+	return g.status, g.statusErr
 }
 
 // FileStatus reports the worktree classification of one path: "clean" when
@@ -520,23 +558,28 @@ func (g *GitProvider) Attribution(from, to string, globs []string) ([]string, []
 	// stops at the branch point instead of walking to the root.
 	baseline := map[plumbing.Hash]bool{}
 	if from != "" {
-		fromHash, resolveErr := g.resolveRef(from)
-		if resolveErr != nil {
-			return nil, nil, resolveErr
-		}
-		stack := []plumbing.Hash{fromHash}
-		for len(stack) > 0 {
-			h := stack[len(stack)-1]
-			stack = stack[:len(stack)-1]
-			if baseline[h] {
-				continue
+		if cached, ok := g.baselines[from]; ok {
+			baseline = cached
+		} else {
+			fromHash, resolveErr := g.resolveRef(from)
+			if resolveErr != nil {
+				return nil, nil, resolveErr
 			}
-			baseline[h] = true
-			c, err := g.repo.CommitObject(h)
-			if err != nil {
-				continue // truncated history (shallow): stop expanding
+			stack := []plumbing.Hash{fromHash}
+			for len(stack) > 0 {
+				h := stack[len(stack)-1]
+				stack = stack[:len(stack)-1]
+				if baseline[h] {
+					continue
+				}
+				baseline[h] = true
+				c, err := g.repo.CommitObject(h)
+				if err != nil {
+					continue // truncated history (shallow): stop expanding
+				}
+				stack = append(stack, c.ParentHashes...)
 			}
-			stack = append(stack, c.ParentHashes...)
+			g.baselines[from] = baseline
 		}
 	}
 	changedSet := map[string]bool{}
