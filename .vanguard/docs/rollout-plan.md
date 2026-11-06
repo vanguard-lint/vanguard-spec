@@ -90,6 +90,19 @@ repositories, with a cross-repo commit detected as stale naming the exact
 changed file and introducing commit. The stable `0.4.0` follows the rc line
 pending a black-box audit and field feedback.
 
+### W6 — Within-run memoization (0.4.0, performance)
+
+The canon section "Memoization within a run (0.4.0)" is ratified; the git
+provider captures HEAD, the head tree, the go-git worktree scan, and
+attribution baselines once per target per run instead of once per
+document. Motivation, measured: a full check on a real store paid a full
+worktree scan per document — 507.5s on 490 documents, 500.4s on a frozen
+689-document snapshot with three git targets. After memoization the same
+snapshot checks in 20.1s (~25x), and the check envelopes are byte-identical
+between the unmemoized and memoized binaries. No schema, lock, exit-bit,
+or dependency change; snapshot semantics are documented in the provider
+contract and the engine overview.
+
 ## Order
 
 W1 ratification and W2's criteria tree can start immediately and gate
