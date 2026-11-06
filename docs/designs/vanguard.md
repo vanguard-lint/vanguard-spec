@@ -236,6 +236,16 @@ Vanguard is a single Go binary. Four internal components sit between the CLI and
 
 **Cross-target surface.** `check --path` resolves the reverse lookup against every target at least one document references. Range mode runs per document against its own target's history, aggregating `affected_in_range` across targets. W1 `verify` rides the same lock-schema pass: Tier B cross-checks each entry's anchor against its own target's ODB.
 
+### Memoization within a run (0.4.0)
+
+**One snapshot per run.** A `check` or `observe` invocation evaluates every document against a single snapshot of each target's state: HEAD, the HEAD tree, the worktree status, and the attribution baseline are read once per target per run and reused. Without this, a long run mixes states — document one is judged at second zero and document five hundred at minute ten — and the envelope reports a blend that corresponds to no instant in time. Memoization is therefore a consistency improvement, not merely a speedup: the drift window shrinks from the run's duration to the snapshot instant.
+
+**Only deterministic functions of immutable inputs are memoized.** The head tree and the scope hash at HEAD are pure functions of the commit; the worktree status is captured once per run and filtered per document; the attribution baseline (the reachable set below an anchor) is a pure function of the anchor commit. Everything time-dependent is never memoized across a run boundary — `review_after` is evaluated from the clock at evaluation time — and everything worktree-dependent is never reused across runs: dirty state changes without HEAD moving, so a persistent cache keyed by HEAD would lie. Per-path blob comparisons in dirty confirmation read the live worktree and stay live.
+
+**No new artifact, no boundary change.** In-run memoization lives in memory only: `check` still never writes, `observe` remains the only writer of `vanguard.lock`, and no cache file enters the store. A persistent cross-run cache is a separate decision that would require a complete cache key (every input that determines the value, including config), tamper-evidence equal to the lock's, and a canon amendment before any code.
+
+**Semantics are byte-identical.** Memoization must not change any envelope: the same store, lock, and target state produce the same bytes as an unmemoized run. The existing byte-identity and lifecycle tests guard this; a memoized value that could differ from a fresh computation for the same snapshot is a bug, not an optimization.
+
 ### Structure schemas (`.vanguard/schemas/`)
 
 Each format has its own schema language; a document's `schema:` field keys into one of these files.
