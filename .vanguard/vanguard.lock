@@ -101,9 +101,9 @@
       "content_hash": "sha256:cbef46d9c6ada30737d7afb73c5dd69c8985316bb83cd529e8d2ccabb7bd8bf1"
     },
     "quality-plan": {
-      "anchor": "0ae223dac21c556749c9b4ae87a82c0727b0937d",
-      "observed_at": "2026-11-05T04:23:41Z",
-      "scope_tree_hash": "sha256v2:0a3b203b1bb5d3d3907534288076bd5d94aa6fb4e625f3092adfcd100cda4035",
+      "anchor": "16210ab496b85e5b85cfef58c7cd081bf53fe622",
+      "observed_at": "2026-11-06T08:09:28Z",
+      "scope_tree_hash": "sha256v2:ca58dcb338a31742bf1d1aa760c3a5d01967b1b5bba4e3d58a3bebffbdaa7a90",
       "scope_file_count": 3,
       "content_hash": "sha256:44086de7d394b9ae9be3601cd4263a8500288eb6c8a1cecb6e844c8f5321ca6e"
     },
