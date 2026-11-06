@@ -68,7 +68,9 @@ the design canon stays authoritative.
   dirty detection spawns no process — go-git status supplies stat-mismatch
   candidates only, each confirmed by comparing worktree bytes against the
   HEAD blob over the hashnorm pipeline, so `core.autocrlf` renormalization
-  cannot report phantom churn.
+  cannot report phantom churn; within a run HEAD, the head tree, the
+  status scan, and attribution baselines are captured once per target and
+  shared by every document (canon: "Memoization within a run").
 - `internal/check` — the two-phase check engine, the observe attestation
   engine, bindings, the text and pretty renderers, and the output contract.
   Since 0.4.0 the engine splits providers by role: a store provider (the
