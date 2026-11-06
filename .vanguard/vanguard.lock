@@ -94,11 +94,11 @@
       "content_hash": "sha256:74c55528641f56c8b99d9273ab70188e1b2df6d93592100848bd3f212bddad58"
     },
     "provider": {
-      "anchor": "2f6d7a4654656641fa2e56e8b02b1fe781038d03",
-      "observed_at": "2026-11-04T05:52:10Z",
-      "scope_tree_hash": "sha256v2:6dd4b3c5e61b3e6671fa4fb338fc705119e82f56a2066bdce9e6907b5c98552b",
+      "anchor": "101c4b0027e0944c270afa0b96f3475dc983d8bc",
+      "observed_at": "2026-11-06T08:07:10Z",
+      "scope_tree_hash": "sha256v2:8846487f55c8b52ddb449a2564f7cbafd5a55302d26bbf1e3598a0ec1ca19344",
       "scope_file_count": 3,
-      "content_hash": "sha256:85ce3ea8942c8287565d1381b0674c5d56625dda1fb4686433f0ee816334fd1e"
+      "content_hash": "sha256:cbef46d9c6ada30737d7afb73c5dd69c8985316bb83cd529e8d2ccabb7bd8bf1"
     },
     "quality-plan": {
       "anchor": "0ae223dac21c556749c9b4ae87a82c0727b0937d",
