@@ -13,9 +13,13 @@ Answers scope-state and worktree questions for one target. `GitProvider`
 (over go-git, embedded object database) handles the commit-graph and
 tree-metadata hot path; `HashProvider` serves a plain directory via
 normalized content hashing. Blob contents are touched only for dirty
-detection. Dirty detection is two-phase and spawns no process: go-git's
-worktree status supplies candidates only, each confirmed by normalized
-byte-compare against the HEAD blob — the git CLI is never consulted.
+detection. Within one run the provider is a snapshot: HEAD, the head tree,
+the go-git worktree scan, and attribution baselines are captured once per
+target and shared by every document of that run (canon: "Memoization
+within a run"); per-candidate confirms stay live. Dirty detection is
+two-phase and spawns no process: go-git's worktree status supplies
+candidates only, each confirmed by normalized byte-compare against the
+HEAD blob — the git CLI is never consulted.
 
 ## Interface
 
@@ -28,9 +32,9 @@ byte-compare against the HEAD blob — the git CLI is never consulted.
 - `ScopeHash(globs)` — per-glob by strategy (tree OID / enumerated /
   repository-wide), combined via `scope.Combine` [provider.go:GitProvider.ScopeHash].
 - `Dirty(globs)` — uncommitted churn inside the globs plus advisory
-  warnings, sorted, store paths excluded, computed fresh on every call;
-  two-phase: go-git status supplies the candidate set, each candidate is
-  confirmed by comparing worktree bytes against the HEAD blob over the
+  warnings, sorted, store paths excluded; the candidate scan is captured
+  once per run and filtered per call, while each candidate is confirmed
+  live by comparing worktree bytes against the HEAD blob over the
   hashnorm pipeline, so `core.autocrlf` renormalization cannot report
   phantom churn [provider.go:GitProvider.Dirty].
 - `HeadState()` — HEAD detachment and whether a merge or rebase is in
