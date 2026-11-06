@@ -119,11 +119,11 @@
       "content_hash": "sha256:4586183d4f16a3868f85ceff40e513d0671f654729e0a89f06f7a7a235349867"
     },
     "rollout-plan": {
-      "anchor": "ceeddb35b0f300cf4879fd276ecdf9ab5748996d",
-      "observed_at": "2026-11-05T04:23:53Z",
+      "anchor": "b0aa543ae4252e173b8b8ffb6f28428d2c11d5a8",
+      "observed_at": "2026-11-06T05:17:43Z",
       "scope_tree_hash": "sha256v2:0a3b203b1bb5d3d3907534288076bd5d94aa6fb4e625f3092adfcd100cda4035",
       "scope_file_count": 3,
-      "content_hash": "sha256:dc3c118849a5cfd450ae3787f424ab549becee5e9bb03f7979e15f8158750ed1"
+      "content_hash": "sha256:974fa8df0e706943a053a1577ed9f48504e1557cd443bf0cb254302d18780429"
     },
     "scope": {
       "anchor": "2f6d7a4654656641fa2e56e8b02b1fe781038d03",
