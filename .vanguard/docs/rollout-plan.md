@@ -81,6 +81,15 @@ precondition split, the optional lock entry field and envelope
 decoupled-refusal case. Zero-migration rule: in-repo stores without
 `targets:` behave byte-identically to 0.3.0.
 
+Status: implemented and shipped as `v0.4.0-rc.1` (2026-11-06). The full
+0.3.0 suite passes unchanged with eight new tests covering the two-repo
+decoupled lifecycle, git and hash targets side by side, primary-target lock
+byte-identity, and the fatal vectors. Verified end to end on a real
+three-repo setup: one documentation store attesting three service
+repositories, with a cross-repo commit detected as stale naming the exact
+changed file and introducing commit. The stable `0.4.0` follows the rc line
+pending a black-box audit and field feedback.
+
 ## Order
 
 W1 ratification and W2's criteria tree can start immediately and gate
