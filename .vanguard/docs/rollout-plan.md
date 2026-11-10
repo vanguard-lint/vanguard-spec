@@ -103,6 +103,25 @@ between the unmemoized and memoized binaries. No schema, lock, exit-bit,
 or dependency change; snapshot semantics are documented in the provider
 contract and the engine overview.
 
+### W7 — Per-answer history caches (0.4.1, performance)
+
+Field feedback on the 0.4.0 memoization: a real 811-document store with
+four git targets still paid ~10 minutes per full check. Instrumented phasing
+attributed 74% of the run to `Attribution` (re-diffing the same commits
+once per document — documents anchoring ~54 commits deep on a large tree
+paid ~0.5s each) and 16% to `AnchorReachable` (re-walking the same history
+per document); the 0.4.0 snapshot memoization never covered these two
+history questions, and the release benchmark missed them because its
+documents shared one anchor. Fix: reachability is cached per anchor (pure
+function of anchor + frozen HEAD) and each commit's changed-path set is
+diffed at most once per run, store-filtered, before glob matching (pure
+function of the commit pair); globs stay per document. Measured on the
+same store: 589.8s → 21.1s (~28x) with byte-identical staleness answers
+(37 stale documents, same ids). Canon extended first
+("History questions are cached per answer, not per document"), then the
+code; `TestHistoryCachesReturnIdenticalAnswers` guards repeat-ask
+identicality, pre-glob isolation, and suffix walks.
+
 ## Order
 
 W1 ratification and W2's criteria tree can start immediately and gate
