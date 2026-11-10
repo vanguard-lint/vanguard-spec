@@ -3,6 +3,7 @@ package provider
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -289,6 +290,93 @@ func TestAttributionChronological(t *testing.T) {
 	if commits[2] >= commits[3] {
 		t.Fatalf("equal-instant commits must break ties by OID, got %v", commits[2:])
 	}
+}
+
+// History-question caches (canon: "History questions are cached per answer,
+// not per document"): asking the same question repeatedly on one provider —
+// one snapshot per run — returns identical answers, the per-commit
+// changed-path cache is pre-glob so a different document's globs filter it
+// without cross-contamination, and a later anchor walks a suffix through the
+// same cache.
+func TestHistoryCachesReturnIdenticalAnswers(t *testing.T) {
+	root, c1 := initRepo(t)
+	p := openGit(t, root)
+	// Explicit committer instants: attribution sorts by committer time,
+	// and commits created in the same nanosecond would fall to the OID
+	// tie-break, making the expected order nondeterministic.
+	base := time.Date(2026, 1, 1, 9, 0, 0, 0, time.UTC)
+	write(t, root, "src/payments/gateway.go", "package payments\n")
+	c2 := commitAllAt(t, p, "add gateway", base)
+	write(t, root, "src/other/thing.go", "package other\n")
+	c3 := commitAllAt(t, p, "add thing", base.Add(time.Hour))
+	write(t, root, "src/payments/refund.go", "package payments\n")
+	c4 := commitAllAt(t, p, "add refund", base.Add(2*time.Hour))
+
+	// Reachability: hit or miss, every ask of the same anchor agrees.
+	for i := 0; i < 2; i++ {
+		if ok, err := p.AnchorReachable(c1); err != nil || !ok {
+			t.Fatalf("c1 must be reachable (ask %d): %v %v", i+1, ok, err)
+		}
+		if ok, err := p.AnchorReachable(c2.String()); err != nil || !ok {
+			t.Fatalf("c2 must be reachable (ask %d): %v %v", i+1, ok, err)
+		}
+	}
+
+	// The same attribution asked twice — the second walk rides the cache —
+	// returns identical paths and commits.
+	wantPaths := []string{"src/payments/gateway.go", "src/payments/refund.go"}
+	wantCommits := []string{c2.String(), c4.String()}
+	for i := 0; i < 2; i++ {
+		paths, commits, err := p.Attribution(c1, "", []string{"src/payments/**"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !reflect.DeepEqual(paths, wantPaths) || !reflect.DeepEqual(commits, wantCommits) {
+			t.Fatalf("attribution ask %d = %v %v, want %v %v", i+1, paths, commits, wantPaths, wantCommits)
+		}
+	}
+
+	// The cache is pre-glob: another document's globs filter the same
+	// cached per-commit sets and must see only its own scope.
+	paths, commits, err := p.Attribution(c1, "", []string{"src/other/**"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(paths, []string{"src/other/thing.go"}) || !reflect.DeepEqual(commits, []string{c3.String()}) {
+		t.Fatalf("other-scope attribution = %v %v, want [thing] [%s]", paths, commits, c3)
+	}
+
+	// A later anchor's attribution is a suffix of the same walk: c2's side
+	// of history is the baseline, so only the refund commit survives.
+	paths, commits, err = p.Attribution(c2.String(), "", []string{"src/payments/**"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(paths, []string{"src/payments/refund.go"}) || !reflect.DeepEqual(commits, []string{c4.String()}) {
+		t.Fatalf("suffix attribution = %v %v, want [refund] [%s]", paths, commits, c4)
+	}
+}
+
+// commitAllAt commits everything with an explicit committer instant so
+// attribution ordering tests are deterministic.
+func commitAllAt(t *testing.T, p *GitProvider, msg string, when time.Time) plumbing.Hash {
+	t.Helper()
+	w, err := p.repo.Worktree()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := w.Add("."); err != nil {
+		t.Fatal(err)
+	}
+	c, err := w.Commit(msg, &git.CommitOptions{
+		Author:            signature(),
+		Committer:         &object.Signature{Name: "t", Email: "t@t", When: when},
+		AllowEmptyCommits: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	return c
 }
 
 func commitAll(t *testing.T, p *GitProvider, msg string) plumbing.Hash {

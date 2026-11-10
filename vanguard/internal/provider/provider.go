@@ -86,6 +86,22 @@ type GitProvider struct {
 	// baselines memoizes Attribution's reachable set per anchor string.
 	// The engine drives providers from a single goroutine, so no lock.
 	baselines map[string]map[plumbing.Hash]bool
+	// reach memoizes AnchorReachable per anchor: a pure function of
+	// (anchor, frozen HEAD), decided at most once per anchor per run.
+	reach map[string]bool
+	// changes memoizes each commit's first-parent changed-path set,
+	// store-filtered, before any document's glob matching: a pure function
+	// of the commit pair, independent of the globs.
+	changes map[plumbing.Hash]*commitChange
+}
+
+// commitChange is one commit's first-parent diff, store-filtered and
+// pre-glob (canon: "History questions are cached per answer, not per
+// document").
+type commitChange struct {
+	paths  []string      // changed paths outside the store dir
+	when   time.Time     // committer time (attribution sort key)
+	parent plumbing.Hash // first parent; zero at the root
 }
 
 // OpenGit opens the repository rooted exactly at root (no upward detection:
@@ -98,7 +114,9 @@ func OpenGit(root, storeDir string) (*GitProvider, error) {
 		return nil, err
 	}
 	return &GitProvider{root: root, storeDir: storeDir, repo: repo,
-		baselines: map[string]map[plumbing.Hash]bool{}}, nil
+		baselines: map[string]map[plumbing.Hash]bool{},
+		reach:     map[string]bool{},
+		changes:   map[plumbing.Hash]*commitChange{}}, nil
 }
 
 func (g *GitProvider) GitMode() bool { return true }
@@ -443,8 +461,21 @@ func (g *GitProvider) HeadState() (detached, midMerge bool, err error) {
 }
 
 // AnchorReachable walks all parents from HEAD (visited set; the walk is the
-// commit-graph hot path — no blobs).
+// commit-graph hot path — no blobs). The answer is a pure function of
+// (anchor, frozen HEAD), so it is decided at most once per anchor per run.
 func (g *GitProvider) AnchorReachable(anchor string) (bool, error) {
+	if cached, ok := g.reach[anchor]; ok {
+		return cached, nil
+	}
+	reachable, err := g.anchorReachable(anchor)
+	if err != nil {
+		return false, err
+	}
+	g.reach[anchor] = reachable
+	return reachable, nil
+}
+
+func (g *GitProvider) anchorReachable(anchor string) (bool, error) {
 	head, err := g.HEAD()
 	if err != nil || head == "" {
 		return false, err
@@ -593,38 +624,12 @@ func (g *GitProvider) Attribution(from, to string, globs []string) ([]string, []
 		if baseline[h] {
 			return nil
 		}
-		commit, err := g.repo.CommitObject(h)
-		if err != nil {
-			return err
-		}
-		tree, err := commit.Tree()
-		if err != nil {
-			return err
-		}
-		var parentTree *object.Tree
-		if commit.NumParents() > 0 {
-			parent, err := commit.Parent(0) // merges diff against first parent only
-			if err != nil {
-				return err
-			}
-			parentTree, err = parent.Tree()
-			if err != nil {
-				return err
-			}
-		}
-		changes, err := object.DiffTree(parentTree, tree)
+		c, err := g.commitChange(h)
 		if err != nil {
 			return err
 		}
 		touched := false
-		for _, c := range changes {
-			path := c.To.Name
-			if path == "" {
-				path = c.From.Name
-			}
-			if g.storeDir != "" && (path == g.storeDir || strings.HasPrefix(path, g.storeDir+"/")) {
-				continue
-			}
+		for _, path := range c.paths {
 			for _, glob := range globs {
 				if pathmatch.Match(glob, path) {
 					changedSet[path] = true
@@ -634,13 +639,13 @@ func (g *GitProvider) Attribution(from, to string, globs []string) ([]string, []
 			}
 		}
 		if touched {
-			commitSet[commit.Hash.String()] = true
-			commitTimes[commit.Hash.String()] = commit.Committer.When
+			commitSet[h.String()] = true
+			commitTimes[h.String()] = c.when
 		}
-		if commit.NumParents() == 0 {
+		if c.parent.IsZero() {
 			return nil
 		}
-		return walk(commit.ParentHashes[0])
+		return walk(c.parent)
 	}
 
 	head, err := g.HEAD()
@@ -673,6 +678,54 @@ func (g *GitProvider) Attribution(from, to string, globs []string) ([]string, []
 		return commits[i] < commits[j]
 	})
 	return paths, commits, nil
+}
+
+// commitChange returns the commit's first-parent diff — store-filtered,
+// pre-glob — computing it at most once per commit per run. Merges diff
+// against their first parent only; the root commit diffs against an empty
+// tree. The result is a pure function of the commit pair, independent of
+// any document's globs.
+func (g *GitProvider) commitChange(h plumbing.Hash) (*commitChange, error) {
+	if cached, ok := g.changes[h]; ok {
+		return cached, nil
+	}
+	commit, err := g.repo.CommitObject(h)
+	if err != nil {
+		return nil, err
+	}
+	tree, err := commit.Tree()
+	if err != nil {
+		return nil, err
+	}
+	var parentTree *object.Tree
+	entry := &commitChange{when: commit.Committer.When}
+	if commit.NumParents() > 0 {
+		entry.parent = commit.ParentHashes[0] // merges diff against first parent only
+		parent, err := commit.Parent(0)
+		if err != nil {
+			return nil, err
+		}
+		parentTree, err = parent.Tree()
+		if err != nil {
+			return nil, err
+		}
+	}
+	diff, err := object.DiffTree(parentTree, tree)
+	if err != nil {
+		return nil, err
+	}
+	for _, c := range diff {
+		path := c.To.Name
+		if path == "" {
+			path = c.From.Name
+		}
+		if g.storeDir != "" && (path == g.storeDir || strings.HasPrefix(path, g.storeDir+"/")) {
+			continue
+		}
+		entry.paths = append(entry.paths, path)
+	}
+	g.changes[h] = entry
+	return entry, nil
 }
 
 func keysOf(set map[string]bool) []string {
