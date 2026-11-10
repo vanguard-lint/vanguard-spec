@@ -69,8 +69,10 @@ the design canon stays authoritative.
   candidates only, each confirmed by comparing worktree bytes against the
   HEAD blob over the hashnorm pipeline, so `core.autocrlf` renormalization
   cannot report phantom churn; within a run HEAD, the head tree, the
-  status scan, and attribution baselines are captured once per target and
-  shared by every document (canon: "Memoization within a run").
+  status scan, the attribution baselines, anchor-reachability answers, and
+  per-commit changed-path sets are captured once per target and shared by
+  every document (canon: "Memoization within a run", extended by the
+  per-answer history caches).
 - `internal/check` — the two-phase check engine, the observe attestation
   engine, bindings, the text and pretty renderers, and the output contract.
   Since 0.4.0 the engine splits providers by role: a store provider (the
