@@ -14,9 +14,11 @@ Answers scope-state and worktree questions for one target. `GitProvider`
 tree-metadata hot path; `HashProvider` serves a plain directory via
 normalized content hashing. Blob contents are touched only for dirty
 detection. Within one run the provider is a snapshot: HEAD, the head tree,
-the go-git worktree scan, and attribution baselines are captured once per
-target and shared by every document of that run (canon: "Memoization
-within a run"); per-candidate confirms stay live. Dirty detection is
+the go-git worktree scan, the attribution baselines, anchor-reachability
+answers, and per-commit changed-path sets are captured once per target and
+shared by every document of that run (canon: "Memoization within a run",
+extended by "History questions are cached per answer, not per document");
+per-candidate confirms stay live. Dirty detection is
 two-phase and spawns no process: go-git's worktree status supplies
 candidates only, each confirmed by normalized byte-compare against the
 HEAD blob — the git CLI is never consulted.
@@ -40,15 +42,20 @@ HEAD blob — the git CLI is never consulted.
 - `HeadState()` — HEAD detachment and whether a merge or rebase is in
   progress, from the `.git` markers, no process spawn
   [provider.go:GitProvider.HeadState].
-- `AnchorReachable(anchor)` — ancestor-of-HEAD walk with a visited set
-  [provider.go:AnchorReachable].
+- `AnchorReachable(anchor)` — ancestor-of-HEAD walk with a visited set;
+  the answer is a pure function of (anchor, frozen HEAD), so it is decided
+  at most once per anchor per run and reused by every document naming that
+  anchor [provider.go:AnchorReachable].
 - `RecoveredAnchor(globs, want, maxWalk)` — first-parent walk bounded by
   maxWalk, first commit whose scope hash equals want [provider.go:RecoveredAnchor].
 - `Attribution(from, to, globs)` — changed paths plus introducing commits
   read chronologically (committer date, equal-position ties break by OID);
   merges diff against first parent only; the walk stops at the anchor's
   reachable set, so post-merge ranges stop at the branch point instead of
-  collecting the baseline's whole history
+  collecting the baseline's whole history. Each commit's changed-path set
+  (store-filtered, before glob matching) is a pure function of the commit
+  pair, so it is diffed at most once per commit per run and every
+  document's globs filter the cached set
   [provider.go:GitProvider.Attribution].
 - `OpenHash(root, storeDir)` — hash-mode provider; `Dirty` is always empty,
   `Attribution` is an explicit error [provider.go:OpenHash].
